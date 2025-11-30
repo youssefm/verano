@@ -1,13 +1,21 @@
-// device.js - Vitruvian BLE device connection and management
+// device.ts - Vitruvian BLE device connection and management
 
-import { ProgramModeNames, EchoLevelNames } from "./modes.js";
+import {
+  ProgramModeNames,
+  EchoLevelNames,
+  EchoLevelType,
+  ProgramModeType,
+} from "./modes.js";
 import {
   buildInitCommand,
   buildInitPreset,
   buildProgramParams,
   buildEchoControl,
   bytesToHex,
+  ProgramParams,
+  EchoControlParams,
 } from "./protocol.js";
+import { MonitorSample } from "./chart.js";
 
 const GATT_SERVICE_UUID = "00001801-0000-1000-8000-00805f9b34fb";
 const SERVICE_CHANGED_CHAR_UUID = "00002a05-0000-1000-8000-00805f9b34fb";
@@ -29,7 +37,47 @@ const NOTIFY_CHAR_UUIDS = [
   "ef0e485a-8749-4314-b1be-01e57cd1712e",
 ];
 
+export type LogCallback = (message: string, type: string) => void;
+export type PropertyListener = (data: Uint8Array) => void;
+export type MonitorListener = (sample: MonitorSample) => void;
+export type RepListener = (data: Uint8Array) => void;
+
+interface GattQueueItem {
+  operation: () => Promise<unknown>;
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+}
+
+export interface DeviceProgramParams extends ProgramParams {
+  perCableDisplay?: number;
+  effectiveDisplay?: number;
+  displayUnit?: string;
+  sequenceID?: number;
+}
+
+export interface DeviceEchoParams extends EchoControlParams {
+  sequenceID?: number;
+}
+
 export class VitruvianDevice {
+  device: BluetoothDevice | null;
+  server: BluetoothRemoteGATTServer | null;
+  rxChar: BluetoothRemoteGATTCharacteristic | null;
+  monitorChar: BluetoothRemoteGATTCharacteristic | null;
+  propertyChar: BluetoothRemoteGATTCharacteristic | null;
+  repNotifyChar: BluetoothRemoteGATTCharacteristic | null;
+  isConnected: boolean;
+  propertyInterval: ReturnType<typeof setInterval> | null;
+  monitorInterval: ReturnType<typeof setInterval> | null;
+  onLog: LogCallback | null;
+  propertyListeners: PropertyListener[];
+  repListeners: RepListener[];
+  monitorListeners: MonitorListener[];
+  lastGoodPosA: number;
+  lastGoodPosB: number;
+  gattQueue: GattQueueItem[];
+  gattBusy: boolean;
+
   constructor() {
     this.device = null;
     this.server = null;
@@ -52,7 +100,7 @@ export class VitruvianDevice {
     this.gattBusy = false;
   }
 
-  log(message, type = "info") {
+  log(message: string, type: string = "info"): void {
     console.log(`[${type}] ${message}`);
     if (this.onLog) {
       this.onLog(message, type);
@@ -60,15 +108,19 @@ export class VitruvianDevice {
   }
 
   // Queue a GATT operation to prevent concurrent access
-  async queueGattOperation(operation) {
+  async queueGattOperation<T>(operation: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
-      this.gattQueue.push({ operation, resolve, reject });
+      this.gattQueue.push({
+        operation: operation as () => Promise<unknown>,
+        resolve: resolve as (value: unknown) => void,
+        reject,
+      });
       this.processGattQueue();
     });
   }
 
   // Process queued GATT operations one at a time
-  async processGattQueue() {
+  async processGattQueue(): Promise<void> {
     // Exit if already processing or queue is empty
     if (this.gattBusy || this.gattQueue.length === 0) {
       return;
@@ -83,7 +135,7 @@ export class VitruvianDevice {
       return;
     }
 
-    const { operation, resolve, reject } = this.gattQueue.shift();
+    const { operation, resolve, reject } = this.gattQueue.shift()!;
 
     try {
       const result = await operation();
@@ -97,12 +149,12 @@ export class VitruvianDevice {
     }
   }
 
-  logWriteAttempt(label, payload) {
+  logWriteAttempt(label: string, payload: Uint8Array): void {
     const hex = bytesToHex(payload);
     this.log(`-> ${label} (${payload.length} bytes): ${hex}`, "info");
   }
 
-  logWriteResult(label, success) {
+  logWriteResult(label: string, success: boolean): void {
     if (success) {
       this.log(`<- ${label} acknowledged`, "success");
     } else {
@@ -111,7 +163,7 @@ export class VitruvianDevice {
   }
 
   // Connect to the Vitruvian device
-  async connect() {
+  async connect(): Promise<boolean> {
     try {
       this.log("Requesting Bluetooth device...", "info");
 
@@ -131,7 +183,7 @@ export class VitruvianDevice {
 
       // Connect to GATT server
       this.log("Connecting to GATT server...", "info");
-      this.server = await this.device.gatt.connect();
+      this.server = await this.device.gatt!.connect();
 
       this.log("Connected! Discovering services...", "success");
 
@@ -178,18 +230,18 @@ export class VitruvianDevice {
 
       return true;
     } catch (error) {
-      this.log(`Connection failed: ${error.message}`, "error");
+      this.log(`Connection failed: ${(error as Error).message}`, "error");
       throw error;
     }
   }
 
   // Enable core BLE notifications
-  async enableCoreNotifications() {
+  async enableCoreNotifications(): Promise<void> {
     try {
       this.log("Enabling core BLE subscriptions...", "info");
 
       // Get NUS service again for notifications
-      const nusService = await this.server.getPrimaryService(NUS_SERVICE_UUID);
+      const nusService = await this.server!.getPrimaryService(NUS_SERVICE_UUID);
       const characteristics = await nusService.getCharacteristics();
 
       // Enable notifications on all notify characteristics
@@ -203,18 +255,28 @@ export class VitruvianDevice {
           if (uuid === REP_NOTIFY_CHAR_UUID.toLowerCase()) {
             // Special handler for rep notifications
             await char.startNotifications();
-            char.addEventListener("characteristicvaluechanged", (event) => {
-              const value = new Uint8Array(event.target.value.buffer);
-              this.log(`[notify rep] ${bytesToHex(value)}`, "info");
-              this.dispatchRepNotification(value);
-            });
+            char.addEventListener(
+              "characteristicvaluechanged",
+              (event: Event) => {
+                const target =
+                  event.target as BluetoothRemoteGATTCharacteristic;
+                const value = new Uint8Array(target.value!.buffer);
+                this.log(`[notify rep] ${bytesToHex(value)}`, "info");
+                this.dispatchRepNotification(value);
+              }
+            );
           } else {
             // Generic handler for other notifications
             await char.startNotifications();
-            char.addEventListener("characteristicvaluechanged", (event) => {
-              const value = new Uint8Array(event.target.value.buffer);
-              this.log(`[notify ${uuid}] ${bytesToHex(value)}`, "info");
-            });
+            char.addEventListener(
+              "characteristicvaluechanged",
+              (event: Event) => {
+                const target =
+                  event.target as BluetoothRemoteGATTCharacteristic;
+                const value = new Uint8Array(target.value!.buffer);
+                this.log(`[notify ${uuid}] ${bytesToHex(value)}`, "info");
+              }
+            );
           }
           this.log("    -> Notifications active", "success");
         }
@@ -222,43 +284,52 @@ export class VitruvianDevice {
 
       this.log("Core notifications enabled!", "success");
     } catch (error) {
-      this.log(`Failed to enable notifications: ${error.message}`, "error");
+      this.log(
+        `Failed to enable notifications: ${(error as Error).message}`,
+        "error"
+      );
     }
   }
 
   // Write to RX characteristic with response
-  async writeWithResponse(label, payload) {
-    return this.queueGattOperation(async () => {
+  async writeWithResponse(
+    label: string,
+    payload: Uint8Array
+  ): Promise<boolean> {
+    return this.queueGattOperation(async (): Promise<boolean> => {
       try {
         this.logWriteAttempt(label, payload);
-        await this.rxChar.writeValueWithResponse(payload);
+        await this.rxChar!.writeValueWithResponse(payload);
         this.logWriteResult(label, true);
         return true;
       } catch (error) {
         this.logWriteResult(label, false);
-        this.log(`Error: ${error.message}`, "error");
+        this.log(`Error: ${(error as Error).message}`, "error");
         throw error;
       }
     });
   }
 
   // Write to RX characteristic without response
-  async writeWithoutResponse(label, payload) {
-    return this.queueGattOperation(async () => {
+  async writeWithoutResponse(
+    label: string,
+    payload: Uint8Array
+  ): Promise<boolean> {
+    return this.queueGattOperation(async (): Promise<boolean> => {
       try {
         this.logWriteAttempt(label, payload);
-        await this.rxChar.writeValueWithoutResponse(payload);
+        await this.rxChar!.writeValueWithoutResponse(payload);
         this.log(`<- ${label} queued (no response expected)`, "info");
         return true;
       } catch (error) {
-        this.log(`Error: ${error.message}`, "error");
+        this.log(`Error: ${(error as Error).message}`, "error");
         throw error;
       }
     });
   }
 
   // Send initialization sequence
-  async sendInit() {
+  async sendInit(): Promise<void> {
     this.log("\nSending INIT sequence...", "info");
 
     // Send initial command
@@ -276,7 +347,7 @@ export class VitruvianDevice {
   }
 
   // Send stop command to stop the current workout
-  async sendStopCommand() {
+  async sendStopCommand(): Promise<void> {
     if (!this.isConnected) {
       throw new Error("Device not connected");
     }
@@ -288,10 +359,10 @@ export class VitruvianDevice {
   }
 
   // Start a workout program
-  async startProgram(params) {
+  async startProgram(params: DeviceProgramParams): Promise<void> {
     const frame = buildProgramParams(params);
 
-    const modeStr = ProgramModeNames[params.mode];
+    const modeStr = ProgramModeNames[params.mode as ProgramModeType];
     const unit = params.displayUnit || "kg";
     const perCableDisplay =
       typeof params.perCableDisplay === "number"
@@ -333,10 +404,10 @@ export class VitruvianDevice {
   }
 
   // Start Echo mode
-  async startEcho(params) {
+  async startEcho(params: DeviceEchoParams): Promise<void> {
     const frame = buildEchoControl(params);
 
-    const levelStr = EchoLevelNames[params.level];
+    const levelStr = EchoLevelNames[params.level as EchoLevelType];
     this.log(
       `\nStarting Echo mode: ${levelStr} level, ${params.eccentricPct}% eccentric`,
       "info"
@@ -357,7 +428,7 @@ export class VitruvianDevice {
   }
 
   // Start property polling (every 500ms) - reads 0x003f for unknown properties
-  startPropertyPolling() {
+  startPropertyPolling(): void {
     if (this.propertyInterval) {
       this.log("Property polling already running", "info");
       return;
@@ -373,9 +444,9 @@ export class VitruvianDevice {
     this.propertyInterval = setInterval(async () => {
       try {
         const value = await this.queueGattOperation(() =>
-          this.propertyChar.readValue()
+          this.propertyChar!.readValue()
         );
-        const data = new Uint8Array(value.buffer);
+        const data = new Uint8Array((value as DataView).buffer);
         this.dispatchProperty(data);
       } catch (error) {
         // Don't spam errors, just silently continue
@@ -384,7 +455,7 @@ export class VitruvianDevice {
   }
 
   // Stop property polling
-  stopPropertyPolling() {
+  stopPropertyPolling(): void {
     if (this.propertyInterval) {
       clearInterval(this.propertyInterval);
       this.propertyInterval = null;
@@ -393,7 +464,7 @@ export class VitruvianDevice {
   }
 
   // Start monitor polling (every 100ms) - reads 0x0039 for position/load data
-  startMonitorPolling() {
+  startMonitorPolling(): void {
     if (this.monitorInterval) {
       this.log("Monitor polling already running", "info");
       return;
@@ -412,9 +483,9 @@ export class VitruvianDevice {
     this.monitorInterval = setInterval(async () => {
       try {
         const value = await this.queueGattOperation(() =>
-          this.monitorChar.readValue()
+          this.monitorChar!.readValue()
         );
-        const data = new Uint8Array(value.buffer);
+        const data = new Uint8Array((value as DataView).buffer);
         const sample = this.parseMonitorData(data);
         this.dispatchMonitor(sample);
       } catch (error) {
@@ -424,7 +495,7 @@ export class VitruvianDevice {
   }
 
   // Stop monitor polling
-  stopMonitorPolling() {
+  stopMonitorPolling(): void {
     if (this.monitorInterval) {
       clearInterval(this.monitorInterval);
       this.monitorInterval = null;
@@ -433,8 +504,8 @@ export class VitruvianDevice {
   }
 
   // Parse monitor data (0x0039)
-  parseMonitorData(data) {
-    const sample = {
+  parseMonitorData(data: Uint8Array): MonitorSample {
+    const sample: MonitorSample = {
       timestamp: new Date(),
       ticks: 0,
       posA: 0,
@@ -486,22 +557,22 @@ export class VitruvianDevice {
   }
 
   // Add listener for property data
-  addPropertyListener(listener) {
+  addPropertyListener(listener: PropertyListener): void {
     this.propertyListeners.push(listener);
   }
 
   // Add listener for monitor data
-  addMonitorListener(listener) {
+  addMonitorListener(listener: MonitorListener): void {
     this.monitorListeners.push(listener);
   }
 
   // Add listener for rep notifications
-  addRepListener(listener) {
+  addRepListener(listener: RepListener): void {
     this.repListeners.push(listener);
   }
 
   // Dispatch property data to listeners
-  dispatchProperty(data) {
+  dispatchProperty(data: Uint8Array): void {
     for (const listener of this.propertyListeners) {
       try {
         listener(data);
@@ -512,7 +583,7 @@ export class VitruvianDevice {
   }
 
   // Dispatch monitor data to listeners
-  dispatchMonitor(sample) {
+  dispatchMonitor(sample: MonitorSample): void {
     for (const listener of this.monitorListeners) {
       try {
         listener(sample);
@@ -523,7 +594,7 @@ export class VitruvianDevice {
   }
 
   // Dispatch rep notification to listeners
-  dispatchRepNotification(data) {
+  dispatchRepNotification(data: Uint8Array): void {
     for (const listener of this.repListeners) {
       try {
         listener(data);
@@ -534,7 +605,7 @@ export class VitruvianDevice {
   }
 
   // Handle disconnection
-  handleDisconnect() {
+  handleDisconnect(): void {
     this.isConnected = false;
     this.stopPropertyPolling();
     this.stopMonitorPolling();
@@ -545,8 +616,8 @@ export class VitruvianDevice {
   }
 
   // Disconnect from device
-  async disconnect() {
-    if (this.device && this.device.gatt.connected) {
+  async disconnect(): Promise<void> {
+    if (this.device && this.device.gatt?.connected) {
       this.stopPropertyPolling();
       this.stopMonitorPolling();
       await this.device.gatt.disconnect();
@@ -556,7 +627,7 @@ export class VitruvianDevice {
   }
 
   // Helper to sleep
-  sleep(ms) {
+  sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

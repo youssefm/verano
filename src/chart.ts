@@ -1,10 +1,64 @@
-// chart.js - Chart management and visualization
+// chart.ts - Chart management and visualization
 
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
+export interface LoadHistoryPoint {
+  timestamp: Date;
+  loadA: number;
+  loadB: number;
+  posA: number;
+  posB: number;
+}
+
+export interface MonitorSample {
+  timestamp: Date;
+  ticks: number;
+  posA: number;
+  posB: number;
+  loadA: number;
+  loadB: number;
+  raw?: Uint8Array;
+}
+
+export interface EventMarker {
+  time: Date;
+  label: string;
+  color?: string;
+}
+
+export interface LoadUnitConfig {
+  label: string;
+  decimals: number;
+  toDisplay: (value: number) => number;
+}
+
+export interface Workout {
+  mode: string;
+  weightKg: number;
+  reps: number;
+  timestamp: Date;
+  startTime?: Date;
+  warmupEndTime?: Date | null;
+  endTime?: Date;
+}
+
+export type LogCallback = (message: string, type: string) => void;
+
 export class ChartManager {
-  constructor(containerId) {
+  containerId: string;
+  chart: uPlot | null;
+  loadHistory: LoadHistoryPoint[];
+  maxHistoryPoints: number;
+  currentTimeRange: number | null;
+  live: boolean;
+  onLog: LogCallback | null;
+  updateInterval: ReturnType<typeof setInterval> | null;
+  updateFrequency: number;
+  loadUnit: LoadUnitConfig;
+  eventMarkers: EventMarker[];
+
+  constructor(containerId: string) {
     this.containerId = containerId;
     this.chart = null;
     this.loadHistory = [];
@@ -17,13 +71,13 @@ export class ChartManager {
     this.loadUnit = {
       label: "kg",
       decimals: 1,
-      toDisplay: (value) => value,
+      toDisplay: (value: number): number => value,
     };
     this.eventMarkers = []; // Array of {time: Date, label: string, color: string}
   }
 
   // Initialize uPlot chart
-  init() {
+  init(): boolean {
     const container = document.getElementById(this.containerId);
     if (!container) {
       console.warn("Chart container not found yet, will initialize later");
@@ -31,7 +85,7 @@ export class ChartManager {
     }
 
     // uPlot expects data in this format: [timestamps, series1, series2, ...]
-    const data = [
+    const data: uPlot.AlignedData = [
       [], // timestamps (Unix time in seconds)
       [], // Total Load
       [], // Left Cable Load (B)
@@ -43,10 +97,10 @@ export class ChartManager {
     const manager = this;
 
     // Plugin to draw event markers
-    const eventMarkersPlugin = {
+    const eventMarkersPlugin: uPlot.Plugin = {
       hooks: {
         draw: [
-          (u) => {
+          (u: uPlot): void => {
             const { ctx } = u;
             const { left, top, width, height } = u.bbox;
 
@@ -90,7 +144,7 @@ export class ChartManager {
       },
     };
 
-    const opts = {
+    const opts: uPlot.Options = {
       width: container.clientWidth || 800,
       height: 300,
       plugins: [eventMarkersPlugin],
@@ -105,7 +159,7 @@ export class ChartManager {
 
         load: {
           auto: true,
-          range: (u, min, max) => {
+          range: (_u: uPlot, min: number, max: number): [number, number] => {
             // Handle invalid data
             if (!isFinite(max) || max <= 0) {
               return [0, 10]; // Default to 0–10 when no data or all zeros
@@ -119,7 +173,7 @@ export class ChartManager {
 
         position: {
           auto: true,
-          range: (u, min, max) => {
+          range: (_u: uPlot, min: number, max: number): [number, number] => {
             if (!isFinite(max) || max <= 0) {
               return [0, 100]; // Default to 0–100 when no data or all zeros
             }
@@ -132,7 +186,7 @@ export class ChartManager {
       series: [
         {
           label: "Time",
-          value: (u, v) => {
+          value: (_u: uPlot, v: number | null): string => {
             if (v == null) return "-";
             const date = new Date(v * 1000);
             return date.toLocaleTimeString("en-US", {
@@ -148,21 +202,24 @@ export class ChartManager {
           stroke: "#667eea",
           width: 1.5,
           scale: "load",
-          value: (u, v) => manager.formatLoadValue(v),
+          value: (_u: uPlot, v: number | null): string =>
+            manager.formatLoadValue(v),
         },
         {
           label: "Left Load",
           stroke: "#ff6b6b",
           width: 1.5,
           scale: "load",
-          value: (u, v) => manager.formatLoadValue(v),
+          value: (_u: uPlot, v: number | null): string =>
+            manager.formatLoadValue(v),
         },
         {
           label: "Right Load",
           stroke: "#51cf66",
           width: 1.5,
           scale: "load",
-          value: (u, v) => manager.formatLoadValue(v),
+          value: (_u: uPlot, v: number | null): string =>
+            manager.formatLoadValue(v),
         },
         {
           label: "Left Position",
@@ -170,7 +227,8 @@ export class ChartManager {
           width: 1.5,
           scale: "position",
           dash: [5, 5],
-          value: (u, v) => (v == null ? "-" : v.toFixed(0)),
+          value: (_u: uPlot, v: number | null): string =>
+            v == null ? "-" : v.toFixed(0),
         },
         {
           label: "Right Position",
@@ -178,7 +236,8 @@ export class ChartManager {
           width: 1.5,
           scale: "position",
           dash: [5, 5],
-          value: (u, v) => (v == null ? "-" : v.toFixed(0)),
+          value: (_u: uPlot, v: number | null): string =>
+            v == null ? "-" : v.toFixed(0),
         },
       ],
       axes: [
@@ -193,7 +252,7 @@ export class ChartManager {
             show: true,
             stroke: "#dee2e6",
           },
-          values: (u, vals) => {
+          values: (_u: uPlot, vals: number[]): string[] => {
             // Format x-axis timestamps as HH:MM:SS only
             return vals.map((v) => {
               const date = new Date(v * 1000);
@@ -263,7 +322,7 @@ export class ChartManager {
   }
 
   // Start periodic chart updates
-  startPeriodicUpdates() {
+  startPeriodicUpdates(): void {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
     }
@@ -275,7 +334,7 @@ export class ChartManager {
   }
 
   // Stop periodic updates
-  stopPeriodicUpdates() {
+  stopPeriodicUpdates(): void {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
@@ -283,7 +342,7 @@ export class ChartManager {
   }
 
   // Add new data point to chart
-  addData(sample) {
+  addData(sample: MonitorSample): void {
     // Add to load history
     this.loadHistory.push({
       timestamp: sample.timestamp,
@@ -295,7 +354,7 @@ export class ChartManager {
 
     // Trim history to max points (2hr limit)
     if (this.loadHistory.length > this.maxHistoryPoints) {
-      const removed = this.loadHistory.shift();
+      this.loadHistory.shift();
 
       // Log when we hit the limit for the first time
       if (this.loadHistory.length === this.maxHistoryPoints && this.onLog) {
@@ -310,12 +369,12 @@ export class ChartManager {
   }
 
   // Update function called periodically to either add new data or if not live, do nothing.
-  update() {
+  update(): void {
     if (!this.chart || this.loadHistory.length === 0 || !this.live) return;
     this.updateChartData();
   }
 
-  setLoadUnit(config) {
+  setLoadUnit(config: LoadUnitConfig | null): void {
     if (!config) {
       return;
     }
@@ -326,16 +385,18 @@ export class ChartManager {
       toDisplay:
         typeof config.toDisplay === "function"
           ? config.toDisplay
-          : (value) => value,
+          : (value: number): number => value,
     };
 
     if (this.chart && this.chart.axes && this.chart.axes[1]) {
-      this.chart.axes[1].label = `Load (${this.loadUnit.label})`;
+      (
+        this.chart.axes[1] as uPlot.Axis
+      ).label = `Load (${this.loadUnit.label})`;
       this.updateChartData();
     }
   }
 
-  formatLoadValue(value) {
+  formatLoadValue(value: number | null): string {
     if (value == null || !isFinite(value)) {
       return "-";
     }
@@ -344,14 +405,14 @@ export class ChartManager {
   }
 
   // Update chart with all data and trim time scale to current time range.
-  updateChartData() {
+  updateChartData(): void {
     // Create fresh arrays each time
-    const timestamps = [];
-    const totalLoads = [];
-    const loadsB = [];
-    const loadsA = [];
-    const positionsB = [];
-    const positionsA = [];
+    const timestamps: number[] = [];
+    const totalLoads: number[] = [];
+    const loadsB: number[] = [];
+    const loadsA: number[] = [];
+    const positionsB: number[] = [];
+    const positionsA: number[] = [];
 
     for (const point of this.loadHistory) {
       timestamps.push(point.timestamp.getTime() / 1000); // Convert to Unix seconds
@@ -370,7 +431,7 @@ export class ChartManager {
     }
 
     // Data order: timestamps, Total Load, Left Load (B), Right Load (A), Left Pos (B), Right Pos (A)
-    const data = [
+    const data: uPlot.AlignedData = [
       timestamps,
       totalLoads,
       loadsB,
@@ -378,43 +439,43 @@ export class ChartManager {
       positionsB,
       positionsA,
     ];
-    this.chart.setData(data);
+    this.chart!.setData(data);
 
     // Auto-scroll to show latest data if user hasn't manually panned
     if (this.currentTimeRange !== null && timestamps.length > 0) {
       const latestTime = timestamps[timestamps.length - 1];
       const minTime = latestTime - this.currentTimeRange;
-      this.chart.setScale("x", { min: minTime, max: latestTime });
+      this.chart!.setScale("x", { min: minTime, max: latestTime });
     }
   }
 
   // Set time range for chart view
-  setTimeRange(seconds) {
+  setTimeRange(seconds: number | null): void {
     this.currentTimeRange = seconds;
 
     // Update button active states
-    document.getElementById("range10s").classList.remove("active");
-    document.getElementById("range30s").classList.remove("active");
-    document.getElementById("range60s").classList.remove("active");
-    document.getElementById("range2m").classList.remove("active");
-    document.getElementById("rangeAll").classList.remove("active");
+    document.getElementById("range10s")?.classList.remove("active");
+    document.getElementById("range30s")?.classList.remove("active");
+    document.getElementById("range60s")?.classList.remove("active");
+    document.getElementById("range2m")?.classList.remove("active");
+    document.getElementById("rangeAll")?.classList.remove("active");
 
     if (seconds) {
       this.live = true;
     }
 
     if (seconds === 10) {
-      document.getElementById("range10s").classList.add("active");
+      document.getElementById("range10s")?.classList.add("active");
     } else if (seconds === 30) {
-      document.getElementById("range30s").classList.add("active");
+      document.getElementById("range30s")?.classList.add("active");
     } else if (seconds === 60) {
-      document.getElementById("range60s").classList.add("active");
+      document.getElementById("range60s")?.classList.add("active");
     } else if (seconds === 120) {
-      document.getElementById("range2m").classList.add("active");
+      document.getElementById("range2m")?.classList.add("active");
     } else {
       this.live = false;
       this.updateChartData(); // Update chart with all data
-      document.getElementById("rangeAll").classList.add("active");
+      document.getElementById("rangeAll")?.classList.add("active");
     }
 
     // Update chart view
@@ -422,7 +483,7 @@ export class ChartManager {
   }
 
   // Export chart data as CSV
-  exportCSV() {
+  exportCSV(): void {
     if (this.loadHistory.length === 0) {
       alert("No data to export yet!");
       return;
@@ -431,7 +492,7 @@ export class ChartManager {
     // Build CSV content
     const unitLabel = this.loadUnit.label;
     const csvDecimals = Math.max(2, this.loadUnit.decimals);
-    const formatCsvValue = (kg) => {
+    const formatCsvValue = (kg: number): string => {
       const converted = this.loadUnit.toDisplay(kg);
       if (converted == null || !isFinite(converted)) {
         return "";
@@ -474,18 +535,18 @@ export class ChartManager {
   }
 
   // Clear all data
-  clear() {
+  clear(): void {
     this.loadHistory = [];
     this.update();
   }
 
   // Get current data point count
-  getDataCount() {
+  getDataCount(): number {
     return this.loadHistory.length;
   }
 
   // Set event markers for a workout
-  setEventMarkers(markers) {
+  setEventMarkers(markers: EventMarker[]): void {
     this.eventMarkers = markers;
     if (this.chart) {
       this.chart.redraw();
@@ -493,7 +554,7 @@ export class ChartManager {
   }
 
   // Clear event markers
-  clearEventMarkers() {
+  clearEventMarkers(): void {
     this.eventMarkers = [];
     if (this.chart) {
       this.chart.redraw();
@@ -501,7 +562,7 @@ export class ChartManager {
   }
 
   // View a specific workout on the graph
-  viewWorkout(workout) {
+  viewWorkout(workout: Workout): void {
     if (!workout.startTime || !workout.endTime) {
       if (this.onLog) {
         this.onLog("Workout does not have timing information", "error");
@@ -510,7 +571,7 @@ export class ChartManager {
     }
 
     // Set event markers for this workout
-    const markers = [
+    const markers: EventMarker[] = [
       {
         time: workout.startTime,
         label: "Start",
@@ -542,11 +603,11 @@ export class ChartManager {
     this.updateChartData();
 
     // Update button active states to show "All" is active
-    document.getElementById("range10s").classList.remove("active");
-    document.getElementById("range30s").classList.remove("active");
-    document.getElementById("range60s").classList.remove("active");
-    document.getElementById("range2m").classList.remove("active");
-    document.getElementById("rangeAll").classList.add("active");
+    document.getElementById("range10s")?.classList.remove("active");
+    document.getElementById("range30s")?.classList.remove("active");
+    document.getElementById("range60s")?.classList.remove("active");
+    document.getElementById("range2m")?.classList.remove("active");
+    document.getElementById("rangeAll")?.classList.add("active");
 
     // Calculate time bounds with some padding
     const startTime = workout.startTime.getTime() / 1000;

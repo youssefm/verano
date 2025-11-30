@@ -1,10 +1,67 @@
-// app.js - Main application logic and UI management
+// app.ts - Main application logic and UI management
 
-import { VitruvianDevice } from "./device.js";
-import { ChartManager } from "./chart.js";
-import { ProgramModeNames, EchoLevelNames } from "./modes.js";
+import {
+  VitruvianDevice,
+  DeviceProgramParams,
+  DeviceEchoParams,
+} from "./device.js";
+import { ChartManager, MonitorSample, Workout } from "./chart.js";
+import {
+  ProgramModeNames,
+  EchoLevelNames,
+  ProgramModeType,
+  EchoLevelType,
+} from "./modes.js";
+
+interface PositionRange {
+  min: number;
+  max: number;
+}
+
+interface CurrentWorkout {
+  mode: string;
+  weightKg: number;
+  targetReps: number;
+  startTime: Date;
+  warmupEndTime: Date | null;
+  endTime: Date | null;
+}
+
+declare global {
+  interface Window {
+    app: VitruvianApp;
+  }
+}
 
 class VitruvianApp {
+  device: VitruvianDevice;
+  chartManager: ChartManager;
+  maxPos: number;
+  stopAtTop: boolean;
+  warmupReps: number;
+  workingReps: number;
+  warmupTarget: number;
+  targetReps: number;
+  workoutHistory: Workout[];
+  currentWorkout: CurrentWorkout | null;
+  topPositionsA: number[];
+  bottomPositionsA: number[];
+  topPositionsB: number[];
+  bottomPositionsB: number[];
+  minRepPosA: number | null;
+  maxRepPosA: number | null;
+  minRepPosB: number | null;
+  maxRepPosB: number | null;
+  minRepPosARange: PositionRange | null;
+  maxRepPosARange: PositionRange | null;
+  minRepPosBRange: PositionRange | null;
+  maxRepPosBRange: PositionRange | null;
+  currentSample: MonitorSample | null;
+  autoStopStartTime: number | null;
+  isJustLiftMode: boolean;
+  lastTopCounter: number | undefined;
+  lastRepCounter: number | undefined;
+
   constructor() {
     this.device = new VitruvianDevice();
     this.chartManager = new ChartManager("loadGraph");
@@ -38,22 +95,25 @@ class VitruvianApp {
     this.updateStopButtonState();
   }
 
-  setupLogging() {
+  setupLogging(): void {
     // Connect device logging to UI
-    this.device.onLog = (message, type) => {
+    this.device.onLog = (message: string, type: string): void => {
       this.addLogEntry(message, type);
     };
   }
 
-  setupChart() {
+  setupChart(): void {
     // Initialize chart and connect logging
     this.chartManager.init();
-    this.chartManager.onLog = (message, type) => {
+    this.chartManager.onLog = (message: string, type: string): void => {
       this.addLogEntry(message, type);
     };
   }
 
-  formatWeightValue(kg, decimals = 1) {
+  formatWeightValue(
+    kg: number | null | undefined,
+    decimals: number = 1
+  ): string {
     if (kg === null || kg === undefined || isNaN(kg)) {
       return "";
     }
@@ -61,7 +121,10 @@ class VitruvianApp {
     return kg.toFixed(decimals);
   }
 
-  formatWeightWithUnit(kg, decimals = 1) {
+  formatWeightWithUnit(
+    kg: number | null | undefined,
+    decimals: number = 1
+  ): string {
     const value = this.formatWeightValue(kg, decimals);
     if (!value) {
       return value;
@@ -69,11 +132,11 @@ class VitruvianApp {
     return `${value} kg`;
   }
 
-  getProgressionRangeText() {
+  getProgressionRangeText(): string {
     return "+3.0 to -3.0 kg";
   }
 
-  renderLoadDisplays(sample) {
+  renderLoadDisplays(sample: { loadA?: number; loadB?: number } | null): void {
     const unitLabel = "kg";
 
     const safeSample = sample || {
@@ -81,7 +144,7 @@ class VitruvianApp {
       loadB: 0,
     };
 
-    const formatLoad = (kg) => {
+    const formatLoad = (kg: number | null | undefined): string => {
       if (kg === null || kg === undefined || isNaN(kg)) {
         return `- <span class="stat-unit">${unitLabel}</span>`;
       }
@@ -106,8 +169,10 @@ class VitruvianApp {
     }
   }
 
-  addLogEntry(message, type = "info") {
+  addLogEntry(message: string, type: string = "info"): void {
     const logDiv = document.getElementById("log");
+    if (!logDiv) return;
+
     const entry = document.createElement("div");
     entry.className = `log-line log-${type}`;
     entry.textContent = message;
@@ -119,12 +184,14 @@ class VitruvianApp {
     // Limit log entries to prevent memory issues
     const maxEntries = 500;
     while (logDiv.children.length > maxEntries) {
-      logDiv.removeChild(logDiv.firstChild);
+      logDiv.removeChild(logDiv.firstChild!);
     }
   }
 
-  updateStopButtonState() {
-    const stopBtn = document.getElementById("stopBtn");
+  updateStopButtonState(): void {
+    const stopBtn = document.getElementById(
+      "stopBtn"
+    ) as HTMLButtonElement | null;
     if (!stopBtn) return;
 
     // Check if device is connected and there's an active workout
@@ -154,43 +221,54 @@ class VitruvianApp {
     }
   }
 
-  updateConnectionStatus(connected) {
+  updateConnectionStatus(connected: boolean): void {
     const statusDiv = document.getElementById("status");
-    const connectBtn = document.getElementById("connectBtn");
-    const disconnectBtn = document.getElementById("disconnectBtn");
+    const connectBtn = document.getElementById(
+      "connectBtn"
+    ) as HTMLButtonElement | null;
+    const disconnectBtn = document.getElementById(
+      "disconnectBtn"
+    ) as HTMLButtonElement | null;
     const programSection = document.getElementById("programSection");
     const echoSection = document.getElementById("echoSection");
 
     if (connected) {
-      statusDiv.textContent = "Connected";
-      statusDiv.className = "status connected";
-      connectBtn.disabled = true;
-      disconnectBtn.disabled = false;
-      programSection.classList.remove("hidden");
-      echoSection.classList.remove("hidden");
+      if (statusDiv) {
+        statusDiv.textContent = "Connected";
+        statusDiv.className = "status connected";
+      }
+      if (connectBtn) connectBtn.disabled = true;
+      if (disconnectBtn) disconnectBtn.disabled = false;
+      programSection?.classList.remove("hidden");
+      echoSection?.classList.remove("hidden");
     } else {
-      statusDiv.textContent = "Disconnected";
-      statusDiv.className = "status disconnected";
-      connectBtn.disabled = false;
-      disconnectBtn.disabled = true;
-      programSection.classList.add("hidden");
-      echoSection.classList.add("hidden");
+      if (statusDiv) {
+        statusDiv.textContent = "Disconnected";
+        statusDiv.className = "status disconnected";
+      }
+      if (connectBtn) connectBtn.disabled = false;
+      if (disconnectBtn) disconnectBtn.disabled = true;
+      programSection?.classList.add("hidden");
+      echoSection?.classList.add("hidden");
     }
 
     this.updateStopButtonState();
   }
 
-  updateLiveStats(sample) {
+  updateLiveStats(sample: MonitorSample): void {
     // Store current sample for auto-stop checking
     this.currentSample = sample;
 
     // Update numeric displays
     this.renderLoadDisplays(sample);
-    document.getElementById("ticks").textContent = sample.ticks;
+    const ticksEl = document.getElementById("ticks");
+    if (ticksEl) ticksEl.textContent = String(sample.ticks);
 
     // Update position values
-    document.getElementById("posAValue").textContent = sample.posA;
-    document.getElementById("posBValue").textContent = sample.posB;
+    const posAValueEl = document.getElementById("posAValue");
+    const posBValueEl = document.getElementById("posBValue");
+    if (posAValueEl) posAValueEl.textContent = String(sample.posA);
+    if (posBValueEl) posBValueEl.textContent = String(sample.posB);
 
     // Auto-adjust max position (shared for both cables to keep bars comparable)
     const currentMax = Math.max(sample.posA, sample.posB);
@@ -202,8 +280,10 @@ class VitruvianApp {
     const heightA = Math.min((sample.posA / this.maxPos) * 100, 100);
     const heightB = Math.min((sample.posB / this.maxPos) * 100, 100);
 
-    document.getElementById("barA").style.height = heightA + "%";
-    document.getElementById("barB").style.height = heightB + "%";
+    const barA = document.getElementById("barA");
+    const barB = document.getElementById("barB");
+    if (barA) barA.style.height = heightA + "%";
+    if (barB) barB.style.height = heightB + "%";
 
     // Update range indicators
     this.updateRangeIndicators();
@@ -218,54 +298,65 @@ class VitruvianApp {
   }
 
   // Delegate chart methods to ChartManager
-  setTimeRange(seconds) {
+  setTimeRange(seconds: number | null): void {
     this.chartManager.setTimeRange(seconds);
   }
 
-  exportData() {
+  exportData(): void {
     this.chartManager.exportCSV();
   }
 
   // Mobile sidebar toggle
-  toggleSidebar() {
+  toggleSidebar(): void {
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("overlay");
 
-    sidebar.classList.toggle("open");
-    overlay.classList.toggle("show");
+    sidebar?.classList.toggle("open");
+    overlay?.classList.toggle("show");
   }
 
-  closeSidebar() {
+  closeSidebar(): void {
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("overlay");
 
-    sidebar.classList.remove("open");
-    overlay.classList.remove("show");
+    sidebar?.classList.remove("open");
+    overlay?.classList.remove("show");
   }
 
   // Toggle Just Lift mode UI
-  toggleJustLiftMode() {
-    const justLiftCheckbox = document.getElementById("justLiftCheckbox");
-    const repsInput = document.getElementById("reps");
+  toggleJustLiftMode(): void {
+    const justLiftCheckbox = document.getElementById(
+      "justLiftCheckbox"
+    ) as HTMLInputElement | null;
+    const repsInput = document.getElementById(
+      "reps"
+    ) as HTMLInputElement | null;
     const modeLabel = document.getElementById("modeLabel");
 
-    if (justLiftCheckbox.checked) {
+    if (justLiftCheckbox?.checked) {
       // Just Lift mode enabled - disable reps input
-      repsInput.disabled = true;
-      repsInput.style.opacity = "0.5";
-      modeLabel.textContent = "Base Mode (for resistance profile):";
+      if (repsInput) {
+        repsInput.disabled = true;
+        repsInput.style.opacity = "0.5";
+      }
+      if (modeLabel)
+        modeLabel.textContent = "Base Mode (for resistance profile):";
     } else {
       // Regular mode - enable reps input
-      repsInput.disabled = false;
-      repsInput.style.opacity = "1";
-      modeLabel.textContent = "Workout Mode:";
+      if (repsInput) {
+        repsInput.disabled = false;
+        repsInput.style.opacity = "1";
+      }
+      if (modeLabel) modeLabel.textContent = "Workout Mode:";
     }
   }
 
   // Toggle stop at top setting
-  toggleStopAtTop() {
-    const checkbox = document.getElementById("stopAtTopCheckbox");
-    this.stopAtTop = checkbox.checked;
+  toggleStopAtTop(): void {
+    const checkbox = document.getElementById(
+      "stopAtTopCheckbox"
+    ) as HTMLInputElement | null;
+    this.stopAtTop = checkbox?.checked || false;
     this.addLogEntry(
       `Stop at top of final rep: ${this.stopAtTop ? "enabled" : "disabled"}`,
       "info"
@@ -273,24 +364,30 @@ class VitruvianApp {
   }
 
   // Toggle Just Lift mode UI for Echo mode
-  toggleEchoJustLiftMode() {
+  toggleEchoJustLiftMode(): void {
     const echoJustLiftCheckbox = document.getElementById(
       "echoJustLiftCheckbox"
-    );
-    const targetRepsInput = document.getElementById("targetReps");
+    ) as HTMLInputElement | null;
+    const targetRepsInput = document.getElementById(
+      "targetReps"
+    ) as HTMLInputElement | null;
 
-    if (echoJustLiftCheckbox.checked) {
+    if (echoJustLiftCheckbox?.checked) {
       // Just Lift mode enabled - disable reps input
-      targetRepsInput.disabled = true;
-      targetRepsInput.style.opacity = "0.5";
+      if (targetRepsInput) {
+        targetRepsInput.disabled = true;
+        targetRepsInput.style.opacity = "0.5";
+      }
     } else {
       // Regular mode - enable reps input
-      targetRepsInput.disabled = false;
-      targetRepsInput.style.opacity = "1";
+      if (targetRepsInput) {
+        targetRepsInput.disabled = false;
+        targetRepsInput.style.opacity = "1";
+      }
     }
   }
 
-  updateRepCounters() {
+  updateRepCounters(): void {
     // Update warmup counter
     const warmupEl = document.getElementById("warmupCounter");
     if (warmupEl) {
@@ -316,16 +413,32 @@ class VitruvianApp {
     }
   }
 
-  updateRangeIndicators() {
+  updateRangeIndicators(): void {
     // Update range indicators for cable A
-    const rangeMinA = document.getElementById("rangeMinA");
-    const rangeMaxA = document.getElementById("rangeMaxA");
-    const rangeMinB = document.getElementById("rangeMinB");
-    const rangeMaxB = document.getElementById("rangeMaxB");
-    const rangeBandMinA = document.getElementById("rangeBandMinA");
-    const rangeBandMaxA = document.getElementById("rangeBandMaxA");
-    const rangeBandMinB = document.getElementById("rangeBandMinB");
-    const rangeBandMaxB = document.getElementById("rangeBandMaxB");
+    const rangeMinA = document.getElementById(
+      "rangeMinA"
+    ) as HTMLElement | null;
+    const rangeMaxA = document.getElementById(
+      "rangeMaxA"
+    ) as HTMLElement | null;
+    const rangeMinB = document.getElementById(
+      "rangeMinB"
+    ) as HTMLElement | null;
+    const rangeMaxB = document.getElementById(
+      "rangeMaxB"
+    ) as HTMLElement | null;
+    const rangeBandMinA = document.getElementById(
+      "rangeBandMinA"
+    ) as HTMLElement | null;
+    const rangeBandMaxA = document.getElementById(
+      "rangeBandMaxA"
+    ) as HTMLElement | null;
+    const rangeBandMinB = document.getElementById(
+      "rangeBandMinB"
+    ) as HTMLElement | null;
+    const rangeBandMaxB = document.getElementById(
+      "rangeBandMaxB"
+    ) as HTMLElement | null;
 
     // Cable A
     if (this.minRepPosA !== null && this.maxRepPosA !== null) {
@@ -333,13 +446,17 @@ class VitruvianApp {
       const minPctA = Math.min((this.minRepPosA / this.maxPos) * 100, 100);
       const maxPctA = Math.min((this.maxRepPosA / this.maxPos) * 100, 100);
 
-      rangeMinA.style.bottom = minPctA + "%";
-      rangeMaxA.style.bottom = maxPctA + "%";
-      rangeMinA.classList.add("visible");
-      rangeMaxA.classList.add("visible");
+      if (rangeMinA) {
+        rangeMinA.style.bottom = minPctA + "%";
+        rangeMinA.classList.add("visible");
+      }
+      if (rangeMaxA) {
+        rangeMaxA.style.bottom = maxPctA + "%";
+        rangeMaxA.classList.add("visible");
+      }
 
       // Update uncertainty bands
-      if (this.minRepPosARange) {
+      if (this.minRepPosARange && rangeBandMinA) {
         const minRangeMinPct = Math.min(
           (this.minRepPosARange.min / this.maxPos) * 100,
           100
@@ -355,7 +472,7 @@ class VitruvianApp {
         rangeBandMinA.classList.add("visible");
       }
 
-      if (this.maxRepPosARange) {
+      if (this.maxRepPosARange && rangeBandMaxA) {
         const maxRangeMinPct = Math.min(
           (this.maxRepPosARange.min / this.maxPos) * 100,
           100
@@ -371,10 +488,10 @@ class VitruvianApp {
         rangeBandMaxA.classList.add("visible");
       }
     } else {
-      rangeMinA.classList.remove("visible");
-      rangeMaxA.classList.remove("visible");
-      rangeBandMinA.classList.remove("visible");
-      rangeBandMaxA.classList.remove("visible");
+      rangeMinA?.classList.remove("visible");
+      rangeMaxA?.classList.remove("visible");
+      rangeBandMinA?.classList.remove("visible");
+      rangeBandMaxA?.classList.remove("visible");
     }
 
     // Cable B
@@ -383,13 +500,17 @@ class VitruvianApp {
       const minPctB = Math.min((this.minRepPosB / this.maxPos) * 100, 100);
       const maxPctB = Math.min((this.maxRepPosB / this.maxPos) * 100, 100);
 
-      rangeMinB.style.bottom = minPctB + "%";
-      rangeMaxB.style.bottom = maxPctB + "%";
-      rangeMinB.classList.add("visible");
-      rangeMaxB.classList.add("visible");
+      if (rangeMinB) {
+        rangeMinB.style.bottom = minPctB + "%";
+        rangeMinB.classList.add("visible");
+      }
+      if (rangeMaxB) {
+        rangeMaxB.style.bottom = maxPctB + "%";
+        rangeMaxB.classList.add("visible");
+      }
 
       // Update uncertainty bands
-      if (this.minRepPosBRange) {
+      if (this.minRepPosBRange && rangeBandMinB) {
         const minRangeMinPct = Math.min(
           (this.minRepPosBRange.min / this.maxPos) * 100,
           100
@@ -405,7 +526,7 @@ class VitruvianApp {
         rangeBandMinB.classList.add("visible");
       }
 
-      if (this.maxRepPosBRange) {
+      if (this.maxRepPosBRange && rangeBandMaxB) {
         const maxRangeMinPct = Math.min(
           (this.maxRepPosBRange.min / this.maxPos) * 100,
           100
@@ -421,14 +542,14 @@ class VitruvianApp {
         rangeBandMaxB.classList.add("visible");
       }
     } else {
-      rangeMinB.classList.remove("visible");
-      rangeMaxB.classList.remove("visible");
-      rangeBandMinB.classList.remove("visible");
-      rangeBandMaxB.classList.remove("visible");
+      rangeMinB?.classList.remove("visible");
+      rangeMaxB?.classList.remove("visible");
+      rangeBandMinB?.classList.remove("visible");
+      rangeBandMaxB?.classList.remove("visible");
     }
   }
 
-  resetRepCountersToEmpty() {
+  resetRepCountersToEmpty(): void {
     this.warmupReps = 0;
     this.workingReps = 0;
     this.currentWorkout = null;
@@ -458,12 +579,12 @@ class VitruvianApp {
     this.updateStopButtonState();
   }
 
-  addToWorkoutHistory(workout) {
+  addToWorkoutHistory(workout: Workout): void {
     this.workoutHistory.unshift(workout); // Add to beginning
     this.updateHistoryDisplay();
   }
 
-  viewWorkoutOnGraph(index) {
+  viewWorkoutOnGraph(index: number): void {
     if (index < 0 || index >= this.workoutHistory.length) {
       this.addLogEntry("Invalid workout index", "error");
       return;
@@ -473,7 +594,7 @@ class VitruvianApp {
     this.chartManager.viewWorkout(workout);
   }
 
-  updateHistoryDisplay() {
+  updateHistoryDisplay(): void {
     const historyList = document.getElementById("historyList");
     if (!historyList) return;
 
@@ -507,7 +628,7 @@ class VitruvianApp {
       .join("");
   }
 
-  completeWorkout() {
+  completeWorkout(): void {
     if (this.currentWorkout) {
       // Stop polling to prevent queue buildup
       this.device.stopPropertyPolling();
@@ -535,7 +656,7 @@ class VitruvianApp {
   }
 
   // Get dynamic window size based on workout phase
-  getWindowSize() {
+  getWindowSize(): number {
     // During warmup: use last 2 samples
     // During working reps: use last 3 samples
     const totalReps = this.warmupReps + this.workingReps;
@@ -543,7 +664,7 @@ class VitruvianApp {
   }
 
   // Record top position (when u16[0] increments)
-  recordTopPosition(posA, posB) {
+  recordTopPosition(posA: number, posB: number): void {
     // Add to rolling window
     this.topPositionsA.push(posA);
     this.topPositionsB.push(posB);
@@ -562,7 +683,7 @@ class VitruvianApp {
   }
 
   // Record bottom position (when u16[2] increments - rep complete)
-  recordBottomPosition(posA, posB) {
+  recordBottomPosition(posA: number, posB: number): void {
     // Add to rolling window
     this.bottomPositionsA.push(posA);
     this.bottomPositionsB.push(posB);
@@ -581,14 +702,14 @@ class VitruvianApp {
   }
 
   // Calculate rolling average for an array
-  calculateAverage(arr) {
+  calculateAverage(arr: number[]): number | null {
     if (arr.length === 0) return null;
     const sum = arr.reduce((a, b) => a + b, 0);
     return Math.round(sum / arr.length);
   }
 
   // Calculate min/max range for uncertainty band
-  calculateRange(arr) {
+  calculateRange(arr: number[]): PositionRange | null {
     if (arr.length === 0) return null;
     return {
       min: Math.min(...arr),
@@ -597,7 +718,7 @@ class VitruvianApp {
   }
 
   // Update min/max rep ranges from rolling averages
-  updateRepRanges() {
+  updateRepRanges(): void {
     const oldMinA = this.minRepPosA;
     const oldMaxA = this.maxRepPosA;
     const oldMinB = this.minRepPosB;
@@ -617,10 +738,18 @@ class VitruvianApp {
 
     // Log if range changed significantly (> 5 units)
     const rangeChanged =
-      (oldMinA !== null && Math.abs(this.minRepPosA - oldMinA) > 5) ||
-      (oldMaxA !== null && Math.abs(this.maxRepPosA - oldMaxA) > 5) ||
-      (oldMinB !== null && Math.abs(this.minRepPosB - oldMinB) > 5) ||
-      (oldMaxB !== null && Math.abs(this.maxRepPosB - oldMaxB) > 5);
+      (oldMinA !== null &&
+        this.minRepPosA !== null &&
+        Math.abs(this.minRepPosA - oldMinA) > 5) ||
+      (oldMaxA !== null &&
+        this.maxRepPosA !== null &&
+        Math.abs(this.maxRepPosA - oldMaxA) > 5) ||
+      (oldMinB !== null &&
+        this.minRepPosB !== null &&
+        Math.abs(this.minRepPosB - oldMinB) > 5) ||
+      (oldMaxB !== null &&
+        this.maxRepPosB !== null &&
+        Math.abs(this.maxRepPosB - oldMaxB) > 5);
 
     if (rangeChanged || oldMinA === null) {
       const rangeA =
@@ -644,15 +773,15 @@ class VitruvianApp {
   }
 
   // Check if we should auto-stop (for Just Lift mode)
-  checkAutoStop(sample) {
+  checkAutoStop(sample: MonitorSample): void {
     // Need at least one cable to have established a range
     if (!this.minRepPosA && !this.minRepPosB) {
       this.updateAutoStopUI(0);
       return;
     }
 
-    const rangeA = this.maxRepPosA - this.minRepPosA;
-    const rangeB = this.maxRepPosB - this.minRepPosB;
+    const rangeA = (this.maxRepPosA || 0) - (this.minRepPosA || 0);
+    const rangeB = (this.maxRepPosB || 0) - (this.minRepPosB || 0);
 
     // Only check cables that have a meaningful range (> 50 units of movement)
     const minRangeThreshold = 50;
@@ -668,7 +797,7 @@ class VitruvianApp {
     let inDangerZone = false;
 
     // Check cable A if it has meaningful range
-    if (checkCableA) {
+    if (checkCableA && this.minRepPosA !== null) {
       const thresholdA = this.minRepPosA + rangeA * 0.05;
       if (sample.posA <= thresholdA) {
         inDangerZone = true;
@@ -676,7 +805,7 @@ class VitruvianApp {
     }
 
     // Check cable B if it has meaningful range
-    if (checkCableB) {
+    if (checkCableB && this.minRepPosB !== null) {
       const thresholdB = this.minRepPosB + rangeB * 0.05;
       if (sample.posB <= thresholdB) {
         inDangerZone = true;
@@ -716,8 +845,10 @@ class VitruvianApp {
   }
 
   // Update the auto-stop timer UI
-  updateAutoStopUI(progress) {
-    const progressCircle = document.getElementById("autoStopProgress");
+  updateAutoStopUI(progress: number): void {
+    const progressCircle = document.getElementById(
+      "autoStopProgress"
+    ) as SVGCircleElement | null;
     const autoStopText = document.getElementById("autoStopText");
 
     if (!progressCircle || !autoStopText) return;
@@ -726,7 +857,7 @@ class VitruvianApp {
     const circumference = 220;
     const offset = circumference - progress * circumference;
 
-    progressCircle.style.strokeDashoffset = offset;
+    progressCircle.style.strokeDashoffset = String(offset);
 
     // Update text based on progress
     if (progress > 0) {
@@ -741,7 +872,7 @@ class VitruvianApp {
     }
   }
 
-  handleRepNotification(data) {
+  handleRepNotification(data: Uint8Array): void {
     // Parse rep notification
     if (data.length < 6) {
       return; // Not enough data
@@ -749,7 +880,7 @@ class VitruvianApp {
 
     // Parse as u16 array
     const numU16 = data.length / 2;
-    const u16Values = [];
+    const u16Values: number[] = [];
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
     for (let i = 0; i < numU16; i++) {
@@ -903,7 +1034,7 @@ class VitruvianApp {
     this.lastRepCounter = completeCounter;
   }
 
-  async connect() {
+  async connect(): Promise<void> {
     try {
       // Check if Web Bluetooth is supported
       if (!navigator.bluetooth) {
@@ -920,22 +1051,28 @@ class VitruvianApp {
       await this.device.sendInit();
     } catch (error) {
       console.error("Connection error:", error);
-      this.addLogEntry(`Connection failed: ${error.message}`, "error");
+      this.addLogEntry(
+        `Connection failed: ${(error as Error).message}`,
+        "error"
+      );
       this.updateConnectionStatus(false);
     }
   }
 
-  async disconnect() {
+  async disconnect(): Promise<void> {
     try {
       await this.device.disconnect();
       this.updateConnectionStatus(false);
     } catch (error) {
       console.error("Disconnect error:", error);
-      this.addLogEntry(`Disconnect failed: ${error.message}`, "error");
+      this.addLogEntry(
+        `Disconnect failed: ${(error as Error).message}`,
+        "error"
+      );
     }
   }
 
-  async stopWorkout() {
+  async stopWorkout(): Promise<void> {
     try {
       await this.device.sendStopCommand();
       this.addLogEntry("Workout stopped by user", "info");
@@ -944,20 +1081,44 @@ class VitruvianApp {
       this.completeWorkout();
     } catch (error) {
       console.error("Stop workout error:", error);
-      this.addLogEntry(`Failed to stop workout: ${error.message}`, "error");
-      alert(`Failed to stop workout: ${error.message}`);
+      this.addLogEntry(
+        `Failed to stop workout: ${(error as Error).message}`,
+        "error"
+      );
+      alert(`Failed to stop workout: ${(error as Error).message}`);
     }
   }
 
-  async startProgram() {
+  async startProgram(): Promise<void> {
     try {
-      const modeSelect = document.getElementById("mode");
-      const weightInput = document.getElementById("weight");
-      const repsInput = document.getElementById("reps");
-      const justLiftCheckbox = document.getElementById("justLiftCheckbox");
-      const progressionInput = document.getElementById("progression");
+      const modeSelect = document.getElementById(
+        "mode"
+      ) as HTMLSelectElement | null;
+      const weightInput = document.getElementById(
+        "weight"
+      ) as HTMLInputElement | null;
+      const repsInput = document.getElementById(
+        "reps"
+      ) as HTMLInputElement | null;
+      const justLiftCheckbox = document.getElementById(
+        "justLiftCheckbox"
+      ) as HTMLInputElement | null;
+      const progressionInput = document.getElementById(
+        "progression"
+      ) as HTMLInputElement | null;
 
-      const baseMode = parseInt(modeSelect.value);
+      if (
+        !modeSelect ||
+        !weightInput ||
+        !repsInput ||
+        !justLiftCheckbox ||
+        !progressionInput
+      ) {
+        this.addLogEntry("Missing form elements", "error");
+        return;
+      }
+
+      const baseMode = parseInt(modeSelect.value) as ProgramModeType;
       const perCableDisplay = parseFloat(weightInput.value);
       const isJustLift = justLiftCheckbox.checked;
       const reps = isJustLift ? 0 : parseInt(repsInput.value);
@@ -998,7 +1159,7 @@ class VitruvianApp {
       const effectiveKg = perCableKg + 10.0;
       const effectiveDisplay = effectiveKg;
 
-      const params = {
+      const params: DeviceProgramParams = {
         mode: baseMode, // Not used directly, baseMode is used in protocol
         baseMode: baseMode,
         isJustLift: isJustLift,
@@ -1008,7 +1169,6 @@ class VitruvianApp {
         effectiveKg: effectiveKg,
         effectiveDisplay: effectiveDisplay,
         progressionKg: progressionKg,
-        progressionDisplay: progressionKg,
         displayUnit: "kg",
         sequenceID: 0x0b,
       };
@@ -1045,12 +1205,12 @@ class VitruvianApp {
       await this.device.startProgram(params);
 
       // Set up monitor listener
-      this.device.addMonitorListener((sample) => {
+      this.device.addMonitorListener((sample: MonitorSample): void => {
         this.updateLiveStats(sample);
       });
 
       // Set up rep listener
-      this.device.addRepListener((data) => {
+      this.device.addRepListener((data: Uint8Array): void => {
         this.handleRepNotification(data);
       });
 
@@ -1061,31 +1221,50 @@ class VitruvianApp {
       this.closeSidebar();
     } catch (error) {
       console.error("Start program error:", error);
-      this.addLogEntry(`Failed to start program: ${error.message}`, "error");
-      alert(`Failed to start program: ${error.message}`);
+      this.addLogEntry(
+        `Failed to start program: ${(error as Error).message}`,
+        "error"
+      );
+      alert(`Failed to start program: ${(error as Error).message}`);
     }
   }
 
   // Convert display value to kg (identity function since we always use kg)
-  convertDisplayToKg(value) {
+  convertDisplayToKg(value: number): number {
     return value;
   }
 
   // Get weight range text
-  getWeightRangeText() {
+  getWeightRangeText(): string {
     return "0-100 kg";
   }
 
-  async startEcho() {
+  async startEcho(): Promise<void> {
     try {
-      const levelSelect = document.getElementById("echoLevel");
-      const eccentricInput = document.getElementById("eccentric");
-      const targetInput = document.getElementById("targetReps");
+      const levelSelect = document.getElementById(
+        "echoLevel"
+      ) as HTMLSelectElement | null;
+      const eccentricInput = document.getElementById(
+        "eccentric"
+      ) as HTMLInputElement | null;
+      const targetInput = document.getElementById(
+        "targetReps"
+      ) as HTMLInputElement | null;
       const echoJustLiftCheckbox = document.getElementById(
         "echoJustLiftCheckbox"
-      );
+      ) as HTMLInputElement | null;
 
-      const level = parseInt(levelSelect.value) - 1; // Convert to 0-indexed
+      if (
+        !levelSelect ||
+        !eccentricInput ||
+        !targetInput ||
+        !echoJustLiftCheckbox
+      ) {
+        this.addLogEntry("Missing form elements", "error");
+        return;
+      }
+
+      const level = (parseInt(levelSelect.value) - 1) as EchoLevelType; // Convert to 0-indexed
       const eccentricPct = parseInt(eccentricInput.value);
       const warmupReps = 3; // Hardcoded warmup reps for Echo mode
       const isJustLift = echoJustLiftCheckbox.checked;
@@ -1105,7 +1284,7 @@ class VitruvianApp {
         return;
       }
 
-      const params = {
+      const params: DeviceEchoParams = {
         level: level,
         eccentricPct: eccentricPct,
         warmupReps: warmupReps,
@@ -1146,12 +1325,12 @@ class VitruvianApp {
       await this.device.startEcho(params);
 
       // Set up monitor listener
-      this.device.addMonitorListener((sample) => {
+      this.device.addMonitorListener((sample: MonitorSample): void => {
         this.updateLiveStats(sample);
       });
 
       // Set up rep listener
-      this.device.addRepListener((data) => {
+      this.device.addRepListener((data: Uint8Array): void => {
         this.handleRepNotification(data);
       });
 
@@ -1162,8 +1341,11 @@ class VitruvianApp {
       this.closeSidebar();
     } catch (error) {
       console.error("Start Echo error:", error);
-      this.addLogEntry(`Failed to start Echo mode: ${error.message}`, "error");
-      alert(`Failed to start Echo mode: ${error.message}`);
+      this.addLogEntry(
+        `Failed to start Echo mode: ${(error as Error).message}`,
+        "error"
+      );
+      alert(`Failed to start Echo mode: ${(error as Error).message}`);
     }
   }
 }

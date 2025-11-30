@@ -1,14 +1,37 @@
-// protocol.js - BLE protocol frame builders
+// protocol.ts - BLE protocol frame builders
 
-import { getModeProfile, getEchoParams } from "./modes.js";
+import {
+  getModeProfile,
+  getEchoParams,
+  ProgramModeType,
+  EchoLevelType,
+} from "./modes.js";
+
+export interface ProgramParams {
+  mode: ProgramModeType;
+  baseMode: ProgramModeType;
+  isJustLift: boolean;
+  reps: number;
+  perCableKg: number;
+  effectiveKg: number;
+  progressionKg?: number;
+}
+
+export interface EchoControlParams {
+  level: EchoLevelType;
+  eccentricPct: number;
+  warmupReps?: number;
+  targetReps?: number;
+  isJustLift?: boolean;
+}
 
 // Build the initial 4-byte command sent before INIT
-export function buildInitCommand() {
+export function buildInitCommand(): Uint8Array {
   return new Uint8Array([0x0a, 0x00, 0x00, 0x00]);
 }
 
 // Build the INIT preset frame with coefficient table (34 bytes)
-export function buildInitPreset() {
+export function buildInitPreset(): Uint8Array {
   return new Uint8Array([
     0x11,
     0x00,
@@ -48,7 +71,7 @@ export function buildInitPreset() {
 }
 
 // Build the 96-byte program parameters frame
-export function buildProgramParams(params) {
+export function buildProgramParams(params: ProgramParams): Uint8Array {
   const frame = new Uint8Array(96);
   const buffer = frame.buffer;
   const view = new DataView(buffer);
@@ -121,7 +144,7 @@ export function buildProgramParams(params) {
 }
 
 // Build Echo mode control frame (32 bytes)
-export function buildEchoControl(params) {
+export function buildEchoControl(params: EchoControlParams): Uint8Array {
   const frame = new Uint8Array(32);
   const buffer = frame.buffer;
   const view = new DataView(buffer);
@@ -170,7 +193,7 @@ export function buildEchoControl(params) {
 }
 
 // Helper to convert Uint8Array to hex string for logging
-export function bytesToHex(bytes) {
+export function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join(" ");
