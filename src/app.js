@@ -1,8 +1,8 @@
 // app.js - Main application logic and UI management
 
-import { VitruvianDevice } from './device.js';
-import { ChartManager } from './chart.js';
-import { ProgramModeNames, EchoLevelNames } from './modes.js';
+import { VitruvianDevice } from "./device.js";
+import { ChartManager } from "./chart.js";
+import { ProgramModeNames, EchoLevelNames } from "./modes.js";
 
 class VitruvianApp {
   constructor() {

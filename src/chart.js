@@ -1,7 +1,7 @@
 // chart.js - Chart management and visualization
 
-import uPlot from 'uplot';
-import 'uplot/dist/uPlot.min.css';
+import uPlot from "uplot";
+import "uplot/dist/uPlot.min.css";
 
 export class ChartManager {
   constructor(containerId) {
@@ -301,7 +301,7 @@ export class ChartManager {
       if (this.loadHistory.length === this.maxHistoryPoints && this.onLog) {
         this.onLog(
           "Reached 2hr data limit. Oldest data points will be removed as new data arrives.",
-          "info",
+          "info"
         );
       }
     }
@@ -361,7 +361,7 @@ export class ChartManager {
       const displayA = this.loadUnit.toDisplay(point.loadA);
 
       totalLoads.push(
-        displayTotal != null && isFinite(displayTotal) ? displayTotal : 0,
+        displayTotal != null && isFinite(displayTotal) ? displayTotal : 0
       );
       loadsB.push(displayB != null && isFinite(displayB) ? displayB : 0);
       loadsA.push(displayA != null && isFinite(displayA) ? displayA : 0);
@@ -457,7 +457,9 @@ export class ChartManager {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `workout_${new Date().toISOString().split("T")[0]}_${Date.now()}.csv`;
+    a.download = `workout_${
+      new Date().toISOString().split("T")[0]
+    }_${Date.now()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -466,7 +468,7 @@ export class ChartManager {
     if (this.onLog) {
       this.onLog(
         `Exported ${this.loadHistory.length} data points to CSV`,
-        "success",
+        "success"
       );
     }
   }

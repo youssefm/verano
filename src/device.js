@@ -1,13 +1,13 @@
 // device.js - Vitruvian BLE device connection and management
 
-import { ProgramModeNames, EchoLevelNames } from './modes.js';
+import { ProgramModeNames, EchoLevelNames } from "./modes.js";
 import {
   buildInitCommand,
   buildInitPreset,
   buildProgramParams,
   buildEchoControl,
   bytesToHex,
-} from './protocol.js';
+} from "./protocol.js";
 
 const GATT_SERVICE_UUID = "00001801-0000-1000-8000-00805f9b34fb";
 const SERVICE_CHANGED_CHAR_UUID = "00002a05-0000-1000-8000-00805f9b34fb";

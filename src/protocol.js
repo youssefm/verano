@@ -1,6 +1,6 @@
 // protocol.js - BLE protocol frame builders
 
-import { getModeProfile, getEchoParams } from './modes.js';
+import { getModeProfile, getEchoParams } from "./modes.js";
 
 // Build the initial 4-byte command sent before INIT
 export function buildInitCommand() {
