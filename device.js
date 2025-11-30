@@ -305,12 +305,12 @@ class VitruvianDevice {
     if (params.isJustLift) {
       this.log(
         `\nStarting ${modeStr} mode: ${formattedPerCable} per cable (${formattedEffective} effective)`,
-        "info",
+        "info"
       );
     } else {
       this.log(
         `\nStarting ${modeStr} mode: ${params.reps} reps, ${formattedPerCable} per cable (${formattedEffective} effective)`,
-        "info",
+        "info"
       );
     }
 
@@ -330,12 +330,14 @@ class VitruvianDevice {
     const levelStr = EchoLevelNames[params.level];
     this.log(
       `\nStarting Echo mode: ${levelStr} level, ${params.eccentricPct}% eccentric`,
-      "info",
+      "info"
     );
 
     this.log(
-      `Sending Echo control frame (${frame.length} bytes): ${bytesToHex(frame)}`,
-      "info",
+      `Sending Echo control frame (${frame.length} bytes): ${bytesToHex(
+        frame
+      )}`,
+      "info"
     );
     await this.writeWithResponse("Echo control", frame);
     this.log("Echo mode started successfully!", "success");
@@ -343,29 +345,6 @@ class VitruvianDevice {
     // Start property and monitor polling
     this.startPropertyPolling();
     this.startMonitorPolling();
-  }
-
-  // Set LED color scheme
-  async setColorScheme(brightness, colors) {
-    const frame = buildColorScheme(brightness, colors);
-
-    this.log(
-      `\nSetting color scheme: brightness=${brightness.toFixed(2)}`,
-      "info",
-    );
-    colors.forEach((c, i) => {
-      this.log(
-        `  Color ${i + 1}: #${c.r.toString(16).padStart(2, "0")}${c.g.toString(16).padStart(2, "0")}${c.b.toString(16).padStart(2, "0")}`,
-        "info",
-      );
-    });
-
-    this.log(
-      `Sending color scheme frame (34 bytes): ${bytesToHex(frame)}`,
-      "info",
-    );
-    await this.writeWithResponse("Color scheme", frame);
-    this.log("Color scheme updated successfully!", "success");
   }
 
   // Start property polling (every 500ms) - reads 0x003f for unknown properties
@@ -384,7 +363,9 @@ class VitruvianDevice {
 
     this.propertyInterval = setInterval(async () => {
       try {
-        const value = await this.queueGattOperation(() => this.propertyChar.readValue());
+        const value = await this.queueGattOperation(() =>
+          this.propertyChar.readValue()
+        );
         const data = new Uint8Array(value.buffer);
         this.dispatchProperty(data);
       } catch (error) {
@@ -416,12 +397,14 @@ class VitruvianDevice {
 
     this.log(
       "Started monitor polling (0x0039) every 100ms for live stats",
-      "success",
+      "success"
     );
 
     this.monitorInterval = setInterval(async () => {
       try {
-        const value = await this.queueGattOperation(() => this.monitorChar.readValue());
+        const value = await this.queueGattOperation(() =>
+          this.monitorChar.readValue()
+        );
         const data = new Uint8Array(value.buffer);
         const sample = this.parseMonitorData(data);
         this.dispatchMonitor(sample);

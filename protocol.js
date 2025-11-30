@@ -167,36 +167,6 @@ function buildEchoControl(params) {
   return frame;
 }
 
-// Build a 34-byte color scheme packet
-function buildColorScheme(brightness, colors) {
-  const frame = new Uint8Array(34);
-  const buffer = frame.buffer;
-  const view = new DataView(buffer);
-
-  // Command ID: 0x00000011
-  view.setUint32(0, 0x00000011, true);
-
-  // Reserved fields
-  view.setUint32(4, 0, true);
-  view.setUint32(8, 0, true);
-
-  // Brightness (float32)
-  view.setFloat32(12, brightness, true);
-
-  // Colors: 6 RGB triplets (3 colors repeated twice for left/right mirroring)
-  let offset = 16;
-  for (let i = 0; i < 2; i++) {
-    // Repeat twice
-    for (const color of colors) {
-      frame[offset++] = color.r;
-      frame[offset++] = color.g;
-      frame[offset++] = color.b;
-    }
-  }
-
-  return frame;
-}
-
 // Helper to convert Uint8Array to hex string for logging
 function bytesToHex(bytes) {
   return Array.from(bytes)

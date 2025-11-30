@@ -105,7 +105,7 @@ class VitruvianApp {
     if (weightInput && weightKg !== null && !Number.isNaN(weightKg)) {
       weightInput.value = this.formatWeightValue(
         weightKg,
-        this.getWeightInputDecimals(),
+        this.getWeightInputDecimals()
       );
     }
 
@@ -116,7 +116,7 @@ class VitruvianApp {
     ) {
       progressionInput.value = this.formatWeightValue(
         progressionKg,
-        this.getProgressionInputDecimals(),
+        this.getProgressionInputDecimals()
       );
     }
 
@@ -222,10 +222,10 @@ class VitruvianApp {
     if (progressionInput) {
       const maxDisplay = this.convertKgToDisplay(3);
       progressionInput.min = (-maxDisplay).toFixed(
-        this.getProgressionInputDecimals(),
+        this.getProgressionInputDecimals()
       );
       progressionInput.max = maxDisplay.toFixed(
-        this.getProgressionInputDecimals(),
+        this.getProgressionInputDecimals()
       );
       progressionInput.step = this.weightUnit === "lb" ? 0.2 : 0.1;
     }
@@ -234,7 +234,9 @@ class VitruvianApp {
   getWeightRangeText() {
     const min = this.convertKgToDisplay(0);
     const max = this.convertKgToDisplay(100);
-    return `${min.toFixed(this.getWeightInputDecimals())}-${max.toFixed(this.getWeightInputDecimals())} ${this.getUnitLabel()}`;
+    return `${min.toFixed(this.getWeightInputDecimals())}-${max.toFixed(
+      this.getWeightInputDecimals()
+    )} ${this.getUnitLabel()}`;
   }
 
   getProgressionRangeText() {
@@ -351,11 +353,14 @@ class VitruvianApp {
       // Set tooltip based on the specific issue
       let tooltip = "";
       if (!isConnected && !hasActiveWorkout) {
-        tooltip = "Device disconnected and no workout active, but you can still send a stop request if you think this is not right";
+        tooltip =
+          "Device disconnected and no workout active, but you can still send a stop request if you think this is not right";
       } else if (!isConnected) {
-        tooltip = "Device disconnected, but you can still send a stop request if you think this is not right";
+        tooltip =
+          "Device disconnected, but you can still send a stop request if you think this is not right";
       } else {
-        tooltip = "No workout active, but you can still send a stop request if you think this is not right";
+        tooltip =
+          "No workout active, but you can still send a stop request if you think this is not right";
       }
       stopBtn.title = tooltip;
     } else {
@@ -370,7 +375,6 @@ class VitruvianApp {
     const disconnectBtn = document.getElementById("disconnectBtn");
     const programSection = document.getElementById("programSection");
     const echoSection = document.getElementById("echoSection");
-    const colorSection = document.getElementById("colorSection");
 
     if (connected) {
       statusDiv.textContent = "Connected";
@@ -379,7 +383,6 @@ class VitruvianApp {
       disconnectBtn.disabled = false;
       programSection.classList.remove("hidden");
       echoSection.classList.remove("hidden");
-      colorSection.classList.remove("hidden");
     } else {
       statusDiv.textContent = "Disconnected";
       statusDiv.className = "status disconnected";
@@ -387,7 +390,6 @@ class VitruvianApp {
       disconnectBtn.disabled = true;
       programSection.classList.add("hidden");
       echoSection.classList.add("hidden");
-      colorSection.classList.add("hidden");
     }
 
     this.updateStopButtonState();
@@ -481,14 +483,14 @@ class VitruvianApp {
     this.stopAtTop = checkbox.checked;
     this.addLogEntry(
       `Stop at top of final rep: ${this.stopAtTop ? "enabled" : "disabled"}`,
-      "info",
+      "info"
     );
   }
 
   // Toggle Just Lift mode UI for Echo mode
   toggleEchoJustLiftMode() {
     const echoJustLiftCheckbox = document.getElementById(
-      "echoJustLiftCheckbox",
+      "echoJustLiftCheckbox"
     );
     const targetRepsInput = document.getElementById("targetReps");
 
@@ -555,11 +557,11 @@ class VitruvianApp {
       if (this.minRepPosARange) {
         const minRangeMinPct = Math.min(
           (this.minRepPosARange.min / this.maxPos) * 100,
-          100,
+          100
         );
         const minRangeMaxPct = Math.min(
           (this.minRepPosARange.max / this.maxPos) * 100,
-          100,
+          100
         );
         const bandHeight = minRangeMaxPct - minRangeMinPct;
 
@@ -571,11 +573,11 @@ class VitruvianApp {
       if (this.maxRepPosARange) {
         const maxRangeMinPct = Math.min(
           (this.maxRepPosARange.min / this.maxPos) * 100,
-          100,
+          100
         );
         const maxRangeMaxPct = Math.min(
           (this.maxRepPosARange.max / this.maxPos) * 100,
-          100,
+          100
         );
         const bandHeight = maxRangeMaxPct - maxRangeMinPct;
 
@@ -605,11 +607,11 @@ class VitruvianApp {
       if (this.minRepPosBRange) {
         const minRangeMinPct = Math.min(
           (this.minRepPosBRange.min / this.maxPos) * 100,
-          100,
+          100
         );
         const minRangeMaxPct = Math.min(
           (this.minRepPosBRange.max / this.maxPos) * 100,
-          100,
+          100
         );
         const bandHeight = minRangeMaxPct - minRangeMinPct;
 
@@ -621,11 +623,11 @@ class VitruvianApp {
       if (this.maxRepPosBRange) {
         const maxRangeMinPct = Math.min(
           (this.maxRepPosBRange.min / this.maxPos) * 100,
-          100,
+          100
         );
         const maxRangeMaxPct = Math.min(
           (this.maxRepPosBRange.max / this.maxPos) * 100,
-          100,
+          100
         );
         const bandHeight = maxRangeMaxPct - maxRangeMinPct;
 
@@ -846,8 +848,12 @@ class VitruvianApp {
           : 0;
 
       this.addLogEntry(
-        `Rep range updated: A[${this.minRepPosA || "?"}-${this.maxRepPosA || "?"}] (${rangeA}), B[${this.minRepPosB || "?"}-${this.maxRepPosB || "?"}] (${rangeB})`,
-        "info",
+        `Rep range updated: A[${this.minRepPosA || "?"}-${
+          this.maxRepPosA || "?"
+        }] (${rangeA}), B[${this.minRepPosB || "?"}-${
+          this.maxRepPosB || "?"
+        }] (${rangeB})`,
+        "info"
       );
     }
   }
@@ -898,7 +904,7 @@ class VitruvianApp {
         this.autoStopStartTime = Date.now();
         this.addLogEntry(
           "Near bottom of range, starting auto-stop timer (5s)...",
-          "info",
+          "info"
         );
       }
 
@@ -910,7 +916,7 @@ class VitruvianApp {
       if (elapsed >= 5.0) {
         this.addLogEntry(
           "Auto-stop triggered! Finishing workout...",
-          "success",
+          "success"
         );
         this.stopWorkout();
       }
@@ -974,8 +980,10 @@ class VitruvianApp {
 
     // Log counters for debugging
     this.addLogEntry(
-      `Rep notification: top=${topCounter}, complete=${completeCounter}, pos=[${this.currentSample?.posA || "?"}, ${this.currentSample?.posB || "?"}]`,
-      "info",
+      `Rep notification: top=${topCounter}, complete=${completeCounter}, pos=[${
+        this.currentSample?.posA || "?"
+      }, ${this.currentSample?.posB || "?"}]`,
+      "info"
     );
 
     // Only process if we have a current sample and active workout
@@ -1000,11 +1008,11 @@ class VitruvianApp {
         // Reached top of range!
         this.addLogEntry(
           `TOP detected! Counter: ${this.lastTopCounter} -> ${topCounter}, pos=[${this.currentSample.posA}, ${this.currentSample.posB}]`,
-          "success",
+          "success"
         );
         this.recordTopPosition(
           this.currentSample.posA,
-          this.currentSample.posB,
+          this.currentSample.posB
         );
         this.lastTopCounter = topCounter;
 
@@ -1019,7 +1027,7 @@ class VitruvianApp {
           // This is the top of the final rep, complete now
           this.addLogEntry(
             "Reached top of final rep! Auto-completing workout...",
-            "success",
+            "success"
           );
           this.stopWorkout(); // Must be explicitly stopped as the machine thinks the set isn't finished until the bottom of the final rep.
           this.completeWorkout();
@@ -1046,11 +1054,11 @@ class VitruvianApp {
       // Rep completed! Record bottom position
       this.addLogEntry(
         `BOTTOM detected! Counter: ${this.lastRepCounter} -> ${completeCounter}, pos=[${this.currentSample.posA}, ${this.currentSample.posB}]`,
-        "success",
+        "success"
       );
       this.recordBottomPosition(
         this.currentSample.posA,
-        this.currentSample.posB,
+        this.currentSample.posB
       );
 
       const totalReps = this.warmupReps + this.workingReps + 1;
@@ -1060,11 +1068,15 @@ class VitruvianApp {
         this.warmupReps++;
         this.addLogEntry(
           `Warmup rep ${this.warmupReps}/${this.warmupTarget} complete`,
-          "success",
+          "success"
         );
 
         // Record when warmup ends (last warmup rep complete)
-        if (this.warmupReps === this.warmupTarget && this.currentWorkout && !this.currentWorkout.warmupEndTime) {
+        if (
+          this.warmupReps === this.warmupTarget &&
+          this.currentWorkout &&
+          !this.currentWorkout.warmupEndTime
+        ) {
           this.currentWorkout.warmupEndTime = new Date();
         }
       } else {
@@ -1074,12 +1086,12 @@ class VitruvianApp {
         if (this.targetReps > 0) {
           this.addLogEntry(
             `Working rep ${this.workingReps}/${this.targetReps} complete`,
-            "success",
+            "success"
           );
         } else {
           this.addLogEntry(
             `Working rep ${this.workingReps} complete`,
-            "success",
+            "success"
           );
         }
 
@@ -1094,7 +1106,7 @@ class VitruvianApp {
           // Complete immediately at bottom (default behavior)
           this.addLogEntry(
             "Target reps reached! Auto-completing workout...",
-            "success",
+            "success"
           );
           this.completeWorkout();
         }
@@ -1111,7 +1123,7 @@ class VitruvianApp {
       // Check if Web Bluetooth is supported
       if (!navigator.bluetooth) {
         alert(
-          "Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera.",
+          "Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera."
         );
         return;
       }
@@ -1192,7 +1204,7 @@ class VitruvianApp {
         progressionKg > 3
       ) {
         alert(
-          `Please enter a valid progression (${this.getProgressionRangeText()})`,
+          `Please enter a valid progression (${this.getProgressionRangeText()})`
         );
         return;
       }
@@ -1275,7 +1287,7 @@ class VitruvianApp {
       const eccentricInput = document.getElementById("eccentric");
       const targetInput = document.getElementById("targetReps");
       const echoJustLiftCheckbox = document.getElementById(
-        "echoJustLiftCheckbox",
+        "echoJustLiftCheckbox"
       );
 
       const level = parseInt(levelSelect.value) - 1; // Convert to 0-indexed
@@ -1357,69 +1369,6 @@ class VitruvianApp {
       console.error("Start Echo error:", error);
       this.addLogEntry(`Failed to start Echo mode: ${error.message}`, "error");
       alert(`Failed to start Echo mode: ${error.message}`);
-    }
-  }
-
-  loadColorPreset() {
-    const presetSelect = document.getElementById("colorPreset");
-    const preset = presetSelect.value;
-
-    if (!preset) {
-      return; // Custom option selected
-    }
-
-    const scheme = PredefinedColorSchemes[preset];
-    if (!scheme) {
-      return;
-    }
-
-    // Update color pickers
-    const colorToHex = (color) => {
-      return (
-        "#" +
-        color.r.toString(16).padStart(2, "0") +
-        color.g.toString(16).padStart(2, "0") +
-        color.b.toString(16).padStart(2, "0")
-      );
-    };
-
-    document.getElementById("color1").value = colorToHex(scheme.colors[0]);
-    document.getElementById("color2").value = colorToHex(scheme.colors[1]);
-    document.getElementById("color3").value = colorToHex(scheme.colors[2]);
-  }
-
-  async setColorScheme() {
-    try {
-      const color1Input = document.getElementById("color1");
-      const color2Input = document.getElementById("color2");
-      const color3Input = document.getElementById("color3");
-
-      // Use fixed brightness of 0.4 (adjusting brightness doesn't seem to work)
-      const brightness = 0.4;
-
-      // Parse colors from hex inputs
-      const hexToRgb = (hex) => {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result
-          ? {
-              r: parseInt(result[1], 16),
-              g: parseInt(result[2], 16),
-              b: parseInt(result[3], 16),
-            }
-          : { r: 0, g: 0, b: 0 };
-      };
-
-      const colors = [
-        hexToRgb(color1Input.value),
-        hexToRgb(color2Input.value),
-        hexToRgb(color3Input.value),
-      ];
-
-      await this.device.setColorScheme(brightness, colors);
-    } catch (error) {
-      console.error("Set color scheme error:", error);
-      this.addLogEntry(`Failed to set color scheme: ${error.message}`, "error");
-      alert(`Failed to set color scheme: ${error.message}`);
     }
   }
 }
