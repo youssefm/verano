@@ -1,6 +1,9 @@
 // chart.js - Chart management and visualization
 
-class ChartManager {
+import uPlot from 'uplot';
+import 'uplot/dist/uPlot.min.css';
+
+export class ChartManager {
   constructor(containerId) {
     this.containerId = containerId;
     this.chart = null;

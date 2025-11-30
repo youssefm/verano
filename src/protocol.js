@@ -1,12 +1,14 @@
 // protocol.js - BLE protocol frame builders
 
+import { getModeProfile, getEchoParams } from './modes.js';
+
 // Build the initial 4-byte command sent before INIT
-function buildInitCommand() {
+export function buildInitCommand() {
   return new Uint8Array([0x0a, 0x00, 0x00, 0x00]);
 }
 
 // Build the INIT preset frame with coefficient table (34 bytes)
-function buildInitPreset() {
+export function buildInitPreset() {
   return new Uint8Array([
     0x11,
     0x00,
@@ -46,7 +48,7 @@ function buildInitPreset() {
 }
 
 // Build the 96-byte program parameters frame
-function buildProgramParams(params) {
+export function buildProgramParams(params) {
   const frame = new Uint8Array(96);
   const buffer = frame.buffer;
   const view = new DataView(buffer);
@@ -119,7 +121,7 @@ function buildProgramParams(params) {
 }
 
 // Build Echo mode control frame (32 bytes)
-function buildEchoControl(params) {
+export function buildEchoControl(params) {
   const frame = new Uint8Array(32);
   const buffer = frame.buffer;
   const view = new DataView(buffer);
@@ -168,7 +170,7 @@ function buildEchoControl(params) {
 }
 
 // Helper to convert Uint8Array to hex string for logging
-function bytesToHex(bytes) {
+export function bytesToHex(bytes) {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join(" ");

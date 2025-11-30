@@ -1,7 +1,7 @@
 // modes.js - Workout mode definitions and parameters
 
 // Program modes
-const ProgramMode = {
+export const ProgramMode = {
   OLD_SCHOOL: 0,
   PUMP: 1,
   TUT: 2,
@@ -9,7 +9,7 @@ const ProgramMode = {
   ECCENTRIC_ONLY: 4,
 };
 
-const ProgramModeNames = {
+export const ProgramModeNames = {
   [ProgramMode.OLD_SCHOOL]: "Old School",
   [ProgramMode.PUMP]: "Pump",
   [ProgramMode.TUT]: "TUT",
@@ -18,14 +18,14 @@ const ProgramModeNames = {
 };
 
 // Echo levels
-const EchoLevel = {
+export const EchoLevel = {
   HARD: 0,
   HARDER: 1,
   HARDEST: 2,
   EPIC: 3,
 };
 
-const EchoLevelNames = {
+export const EchoLevelNames = {
   [EchoLevel.HARD]: "Hard",
   [EchoLevel.HARDER]: "Harder",
   [EchoLevel.HARDEST]: "Hardest",
@@ -33,23 +33,23 @@ const EchoLevelNames = {
 };
 
 // Helper functions for writing binary data
-function writeU16LE(buffer, offset, val) {
+export function writeU16LE(buffer, offset, val) {
   const view = new DataView(buffer);
   view.setUint16(offset, val, true); // true = little endian
 }
 
-function writeI16LE(buffer, offset, val) {
+export function writeI16LE(buffer, offset, val) {
   const view = new DataView(buffer);
   view.setInt16(offset, val, true);
 }
 
-function writeF32LE(buffer, offset, val) {
+export function writeF32LE(buffer, offset, val) {
   const view = new DataView(buffer);
   view.setFloat32(offset, val, true);
 }
 
 // Get Echo parameters for a given level
-function getEchoParams(level, eccentricPct) {
+export function getEchoParams(level, eccentricPct) {
   const params = {
     level: level,
     eccentricPct: eccentricPct,
@@ -84,7 +84,7 @@ function getEchoParams(level, eccentricPct) {
 }
 
 // Get mode profile block for program modes (32 bytes)
-function getModeProfile(mode) {
+export function getModeProfile(mode) {
   const buffer = new ArrayBuffer(32);
   const data = new Uint8Array(buffer);
 

@@ -1,5 +1,9 @@
 // app.js - Main application logic and UI management
 
+import { VitruvianDevice } from './device.js';
+import { ChartManager } from './chart.js';
+import { ProgramModeNames, EchoLevelNames } from './modes.js';
+
 class VitruvianApp {
   constructor() {
     this.device = new VitruvianDevice();
@@ -1062,6 +1066,16 @@ class VitruvianApp {
     }
   }
 
+  // Convert display value to kg (identity function since we always use kg)
+  convertDisplayToKg(value) {
+    return value;
+  }
+
+  // Get weight range text
+  getWeightRangeText() {
+    return "0-100 kg";
+  }
+
   async startEcho() {
     try {
       const levelSelect = document.getElementById("echoLevel");
@@ -1157,6 +1171,9 @@ class VitruvianApp {
 // Create global app instance
 const app = new VitruvianApp();
 
+// Expose app globally for HTML onclick handlers
+window.app = app;
+
 // Log startup message
 app.addLogEntry("Vitruvian Web Control Ready", "success");
 app.addLogEntry('Click "Connect to Device" to begin', "info");
@@ -1165,3 +1182,5 @@ app.addLogEntry("Requirements:", "info");
 app.addLogEntry("- Chrome, Edge, or Opera browser", "info");
 app.addLogEntry("- HTTPS connection (or localhost)", "info");
 app.addLogEntry("- Bluetooth enabled on your device", "info");
+
+export { app };
