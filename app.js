@@ -1,14 +1,10 @@
 // app.js - Main application logic and UI management
 
-const LB_PER_KG = 2.2046226218488;
-const KG_PER_LB = 1 / LB_PER_KG;
-
 class VitruvianApp {
   constructor() {
     this.device = new VitruvianDevice();
     this.chartManager = new ChartManager("loadGraph");
     this.maxPos = 1000; // Shared max for both cables (keeps bars comparable)
-    this.weightUnit = "kg"; // Display unit for weights (default)
     this.stopAtTop = false; // Stop at top of final rep instead of bottom
     this.warmupReps = 0;
     this.workingReps = 0;
@@ -34,7 +30,6 @@ class VitruvianApp {
     this.lastTopCounter = undefined; // Track u16[1] for top detection
     this.setupLogging();
     this.setupChart();
-    this.setupUnitControls();
     this.resetRepCountersToEmpty();
     this.updateStopButtonState();
   }
@@ -52,229 +47,30 @@ class VitruvianApp {
     this.chartManager.onLog = (message, type) => {
       this.addLogEntry(message, type);
     };
-    this.applyUnitToChart();
   }
 
-  setupUnitControls() {
-    const unitSelector = document.getElementById("unitSelector");
-    if (!unitSelector) {
-      return;
-    }
-
-    const storedUnit = this.loadStoredWeightUnit();
-    unitSelector.value = storedUnit;
-    unitSelector.addEventListener("change", (event) => {
-      this.setWeightUnit(event.target.value);
-    });
-
-    if (storedUnit !== this.weightUnit) {
-      this.setWeightUnit(storedUnit, { previousUnit: this.weightUnit });
-    } else {
-      this.onUnitChanged();
-    }
-  }
-
-  setWeightUnit(unit, options = {}) {
-    if (unit !== "kg" && unit !== "lb") {
-      return;
-    }
-
-    const previousUnit = options.previousUnit || this.weightUnit;
-
-    if (unit === this.weightUnit && !options.force) {
-      return;
-    }
-
-    const weightInput = document.getElementById("weight");
-    const progressionInput = document.getElementById("progression");
-
-    const currentWeight = weightInput ? parseFloat(weightInput.value) : NaN;
-    const currentProgression = progressionInput
-      ? parseFloat(progressionInput.value)
-      : NaN;
-
-    const weightKg = !isNaN(currentWeight)
-      ? this.convertDisplayToKg(currentWeight, previousUnit)
-      : null;
-    const progressionKg = !isNaN(currentProgression)
-      ? this.convertDisplayToKg(currentProgression, previousUnit)
-      : null;
-
-    this.weightUnit = unit;
-
-    if (weightInput && weightKg !== null && !Number.isNaN(weightKg)) {
-      weightInput.value = this.formatWeightValue(
-        weightKg,
-        this.getWeightInputDecimals()
-      );
-    }
-
-    if (
-      progressionInput &&
-      progressionKg !== null &&
-      !Number.isNaN(progressionKg)
-    ) {
-      progressionInput.value = this.formatWeightValue(
-        progressionKg,
-        this.getProgressionInputDecimals()
-      );
-    }
-
-    this.onUnitChanged();
-    this.saveWeightUnitPreference();
-  }
-
-  onUnitChanged() {
-    const unitSelector = document.getElementById("unitSelector");
-    if (unitSelector && unitSelector.value !== this.weightUnit) {
-      unitSelector.value = this.weightUnit;
-    }
-
-    const weightLabel = document.getElementById("weightLabel");
-    if (weightLabel) {
-      weightLabel.textContent = `Weight per cable (${this.getUnitLabel()}):`;
-    }
-
-    const progressionLabel = document.getElementById("progressionLabel");
-    if (progressionLabel) {
-      progressionLabel.textContent = `Progression/Regression (${this.getUnitLabel()} per rep):`;
-    }
-
-    const progressionHint = document.getElementById("progressionHint");
-    if (progressionHint) {
-      progressionHint.textContent = this.getProgressionRangeText();
-    }
-
-    this.updateInputsForUnit();
-    this.renderLoadDisplays(this.currentSample);
-    this.updateHistoryDisplay();
-    this.applyUnitToChart();
-  }
-
-  getUnitLabel() {
-    return this.weightUnit === "lb" ? "lb" : "kg";
-  }
-
-  getLoadDisplayDecimals() {
-    return this.weightUnit === "lb" ? 1 : 1;
-  }
-
-  getWeightInputDecimals() {
-    return this.weightUnit === "lb" ? 1 : 1;
-  }
-
-  getProgressionInputDecimals() {
-    return this.weightUnit === "lb" ? 1 : 1;
-  }
-
-  convertKgToDisplay(kg, unit = this.weightUnit) {
-    if (kg === null || kg === undefined || isNaN(kg)) {
-      return NaN;
-    }
-
-    if (unit === "lb") {
-      return kg * LB_PER_KG;
-    }
-
-    return kg;
-  }
-
-  convertDisplayToKg(value, unit = this.weightUnit) {
-    if (value === null || value === undefined || isNaN(value)) {
-      return NaN;
-    }
-
-    if (unit === "lb") {
-      return value * KG_PER_LB;
-    }
-
-    return value;
-  }
-
-  formatWeightValue(kg, decimals = this.getLoadDisplayDecimals()) {
+  formatWeightValue(kg, decimals = 1) {
     if (kg === null || kg === undefined || isNaN(kg)) {
       return "";
     }
 
-    const displayValue = this.convertKgToDisplay(kg);
-    return displayValue.toFixed(decimals);
+    return kg.toFixed(decimals);
   }
 
-  formatWeightWithUnit(kg, decimals = this.getLoadDisplayDecimals()) {
+  formatWeightWithUnit(kg, decimals = 1) {
     const value = this.formatWeightValue(kg, decimals);
     if (!value) {
       return value;
     }
-    return `${value} ${this.getUnitLabel()}`;
-  }
-
-  updateInputsForUnit() {
-    const weightInput = document.getElementById("weight");
-    if (weightInput) {
-      const minDisplay = this.convertKgToDisplay(0);
-      const maxDisplay = this.convertKgToDisplay(100);
-      weightInput.min = minDisplay.toFixed(this.getWeightInputDecimals());
-      weightInput.max = maxDisplay.toFixed(this.getWeightInputDecimals());
-      weightInput.step = this.weightUnit === "lb" ? 1 : 0.5;
-    }
-
-    const progressionInput = document.getElementById("progression");
-    if (progressionInput) {
-      const maxDisplay = this.convertKgToDisplay(3);
-      progressionInput.min = (-maxDisplay).toFixed(
-        this.getProgressionInputDecimals()
-      );
-      progressionInput.max = maxDisplay.toFixed(
-        this.getProgressionInputDecimals()
-      );
-      progressionInput.step = this.weightUnit === "lb" ? 0.2 : 0.1;
-    }
-  }
-
-  getWeightRangeText() {
-    const min = this.convertKgToDisplay(0);
-    const max = this.convertKgToDisplay(100);
-    return `${min.toFixed(this.getWeightInputDecimals())}-${max.toFixed(
-      this.getWeightInputDecimals()
-    )} ${this.getUnitLabel()}`;
+    return `${value} kg`;
   }
 
   getProgressionRangeText() {
-    const maxDisplay = this.convertKgToDisplay(3);
-    const decimals = this.getProgressionInputDecimals();
-    const formatted = maxDisplay.toFixed(decimals);
-    return `+${formatted} to -${formatted} ${this.getUnitLabel()}`;
-  }
-
-  loadStoredWeightUnit() {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return "kg";
-    }
-    try {
-      const stored = localStorage.getItem("vitruvian.weightUnit");
-      if (stored === "lb") {
-        return "lb";
-      }
-    } catch (error) {
-      // Ignore storage errors and fall back to default.
-    }
-    return "kg";
-  }
-
-  saveWeightUnitPreference() {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return;
-    }
-    try {
-      localStorage.setItem("vitruvian.weightUnit", this.weightUnit);
-    } catch (error) {
-      // Ignore storage errors (e.g., private browsing).
-    }
+    return "+3.0 to -3.0 kg";
   }
 
   renderLoadDisplays(sample) {
-    const decimals = this.getLoadDisplayDecimals();
-    const unitLabel = this.getUnitLabel();
+    const unitLabel = "kg";
 
     const safeSample = sample || {
       loadA: 0,
@@ -285,7 +81,7 @@ class VitruvianApp {
       if (kg === null || kg === undefined || isNaN(kg)) {
         return `- <span class="stat-unit">${unitLabel}</span>`;
       }
-      const value = this.convertKgToDisplay(kg).toFixed(decimals);
+      const value = kg.toFixed(1);
       return `${value} <span class="stat-unit">${unitLabel}</span>`;
     };
 
@@ -304,21 +100,6 @@ class VitruvianApp {
       const totalKg = (safeSample.loadA || 0) + (safeSample.loadB || 0);
       totalEl.innerHTML = formatLoad(totalKg);
     }
-  }
-
-  applyUnitToChart() {
-    if (!this.chartManager) {
-      return;
-    }
-
-    const unitLabel = this.getUnitLabel();
-    const decimals = this.getLoadDisplayDecimals();
-
-    this.chartManager.setLoadUnit({
-      label: unitLabel,
-      decimals: decimals,
-      toDisplay: (kg) => this.convertKgToDisplay(kg),
-    });
   }
 
   addLogEntry(message, type = "info") {
@@ -1211,7 +992,7 @@ class VitruvianApp {
 
       // Calculate effective weight (per_cable_kg + 10)
       const effectiveKg = perCableKg + 10.0;
-      const effectiveDisplay = this.convertKgToDisplay(effectiveKg);
+      const effectiveDisplay = effectiveKg;
 
       const params = {
         mode: baseMode, // Not used directly, baseMode is used in protocol
@@ -1219,12 +1000,12 @@ class VitruvianApp {
         isJustLift: isJustLift,
         reps: reps,
         perCableKg: perCableKg,
-        perCableDisplay: this.convertKgToDisplay(perCableKg),
+        perCableDisplay: perCableKg,
         effectiveKg: effectiveKg,
         effectiveDisplay: effectiveDisplay,
         progressionKg: progressionKg,
-        progressionDisplay: this.convertKgToDisplay(progressionKg),
-        displayUnit: this.getUnitLabel(),
+        progressionDisplay: progressionKg,
+        displayUnit: "kg",
         sequenceID: 0x0b,
       };
 
