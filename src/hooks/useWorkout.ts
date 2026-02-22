@@ -19,8 +19,6 @@ export interface UseWorkoutReturn {
   targetReps: number;
   workoutHistory: Workout[];
   isJustLiftMode: boolean;
-  stopAtTop: boolean;
-
   // Live stats
   liveStats: LiveStats;
   repRanges: RepRanges;
@@ -38,7 +36,6 @@ export interface UseWorkoutReturn {
   ) => void;
   completeWorkout: () => void;
   resetWorkout: () => void;
-  setStopAtTop: (value: boolean) => void;
   handleMonitorSample: (sample: MonitorSample) => void;
   handleRepNotification: (data: Uint8Array) => void;
   viewWorkoutOnGraph: (index: number) => Workout | null;
@@ -63,7 +60,7 @@ export function useWorkout(
   const [targetReps, setTargetReps] = useState(0);
   const [workoutHistory, setWorkoutHistory] = useState<Workout[]>([]);
   const [isJustLiftMode, setIsJustLiftMode] = useState(false);
-  const [stopAtTop, setStopAtTop] = useState(false);
+  const stopAtTop = false;
   const [autoStopProgress, setAutoStopProgress] = useState(0);
   const [maxPos, setMaxPos] = useState(1000);
 
@@ -380,7 +377,6 @@ export function useWorkout(
       workingReps,
       warmupTarget,
       targetReps,
-      stopAtTop,
       isJustLiftMode,
       addLog,
       recordTopPosition,
@@ -496,7 +492,6 @@ export function useWorkout(
     targetReps,
     workoutHistory,
     isJustLiftMode,
-    stopAtTop,
     liveStats,
     repRanges,
     maxPos,
@@ -504,7 +499,6 @@ export function useWorkout(
     startWorkout,
     completeWorkout,
     resetWorkout,
-    setStopAtTop,
     handleMonitorSample,
     handleRepNotification,
     viewWorkoutOnGraph,

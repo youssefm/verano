@@ -4,7 +4,6 @@ import React from "react";
 import { ConnectionSection } from "./ConnectionSection";
 import { ProgramSection } from "./ProgramSection";
 import { EchoSection } from "./EchoSection";
-import { ConfigSection } from "./ConfigSection";
 import { ProgramModeType, EchoLevelType } from "../modes";
 
 interface SidebarProps {
@@ -26,8 +25,6 @@ interface SidebarProps {
     targetReps: number,
     isJustLift: boolean
   ) => void;
-  stopAtTop: boolean;
-  onStopAtTopChange: (value: boolean) => void;
 }
 
 export function Sidebar({
@@ -38,8 +35,6 @@ export function Sidebar({
   onDisconnect,
   onStartProgram,
   onStartEcho,
-  stopAtTop,
-  onStopAtTopChange,
 }: SidebarProps) {
   return (
     <aside className={`sidebar ${isOpen ? "open" : ""}`}>
@@ -61,11 +56,6 @@ export function Sidebar({
         />
 
         <EchoSection isConnected={isConnected} onStartEcho={onStartEcho} />
-
-        <ConfigSection
-          stopAtTop={stopAtTop}
-          onStopAtTopChange={onStopAtTopChange}
-        />
       </div>
     </aside>
   );

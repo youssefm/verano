@@ -60,7 +60,6 @@ export function App() {
     targetReps,
     workoutHistory,
     isJustLiftMode,
-    stopAtTop,
     liveStats,
     repRanges,
     maxPos,
@@ -68,7 +67,6 @@ export function App() {
     startWorkout,
     completeWorkout,
     resetWorkout,
-    setStopAtTop,
     handleMonitorSample,
     handleRepNotification,
     viewWorkoutOnGraph,
@@ -299,14 +297,6 @@ export function App() {
           onDisconnect={disconnect}
           onStartProgram={handleStartProgram}
           onStartEcho={handleStartEcho}
-          stopAtTop={stopAtTop}
-          onStopAtTopChange={(value) => {
-            setStopAtTop(value);
-            addLog(
-              `Stop at top of final rep: ${value ? "enabled" : "disabled"}`,
-              "info"
-            );
-          }}
         />
 
         {/* Main content */}
