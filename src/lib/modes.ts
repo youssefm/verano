@@ -1,6 +1,6 @@
 // modes.ts - Workout mode definitions and parameters
 
-// Program modes
+// Program modes (sent to device)
 export const ProgramMode = {
   OLD_SCHOOL: 0,
   PUMP: 1,
@@ -17,6 +17,19 @@ export const ProgramModeNames: Record<ProgramModeType, string> = {
   [ProgramMode.TUT]: "TUT",
   [ProgramMode.TUT_BEAST]: "TUT Beast",
   [ProgramMode.ECCENTRIC_ONLY]: "Eccentric Only",
+};
+
+// Unified workout modes (UI-facing)
+export const WorkoutMode = {
+  ...ProgramMode,
+  ECHO: "echo",
+} as const;
+
+export type WorkoutModeType = (typeof WorkoutMode)[keyof typeof WorkoutMode];
+
+export const WorkoutModeNames: Record<WorkoutModeType, string> = {
+  ...ProgramModeNames,
+  [WorkoutMode.ECHO]: "Echo",
 };
 
 // Echo levels

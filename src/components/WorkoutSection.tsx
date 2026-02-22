@@ -1,17 +1,15 @@
-// components/WorkoutSection.tsx - Unified workout controls (Program + Echo)
+// components/WorkoutSection.tsx - Unified workout controls
 
 import React, { useState } from "react";
 import {
-  ProgramMode,
-  ProgramModeNames,
-  ProgramModeType,
+  WorkoutMode,
+  WorkoutModeNames,
+  WorkoutModeType,
   EchoLevel,
   EchoLevelNames,
   EchoLevelType,
 } from "../lib/modes";
 import { WorkoutConfig } from "../lib/types";
-
-type WorkoutType = "program" | "echo";
 
 interface WorkoutSectionProps {
   isConnected: boolean;
@@ -22,14 +20,14 @@ export function WorkoutSection({
   isConnected,
   onStartWorkout,
 }: WorkoutSectionProps) {
-  const [workoutType, setWorkoutType] = useState<WorkoutType>("program");
+  const [mode, setMode] = useState<WorkoutModeType>(WorkoutMode.OLD_SCHOOL);
+  const isEcho = mode === WorkoutMode.ECHO;
 
   // Shared
   const [reps, setReps] = useState(10);
   const [justLiftMode, setJustLiftMode] = useState(false);
 
   // Program fields
-  const [mode, setMode] = useState<ProgramModeType>(ProgramMode.OLD_SCHOOL);
   const [weight, setWeight] = useState(10);
   const [progression, setProgression] = useState(0);
 
@@ -40,21 +38,21 @@ export function WorkoutSection({
   const effectiveReps = justLiftMode ? 0 : reps;
 
   const handleStart = () => {
-    if (workoutType === "program") {
+    if (isEcho) {
+      onStartWorkout({
+        type: "echo",
+        level,
+        eccentricPct,
+        targetReps: effectiveReps,
+        isJustLift: justLiftMode,
+      });
+    } else {
       onStartWorkout({
         type: "program",
         mode,
         weight,
         reps: effectiveReps,
         progression,
-        isJustLift: justLiftMode,
-      });
-    } else {
-      onStartWorkout({
-        type: "echo",
-        level,
-        eccentricPct,
-        targetReps: effectiveReps,
         isJustLift: justLiftMode,
       });
     }
@@ -69,84 +67,30 @@ export function WorkoutSection({
       <h2>Workout</h2>
 
       <div className="form-group">
-        <label htmlFor="workoutType">Workout Type:</label>
+        <label htmlFor="mode">
+          {justLiftMode && !isEcho
+            ? "Base Mode (for resistance profile):"
+            : "Workout Mode:"}
+        </label>
         <select
-          id="workoutType"
-          value={workoutType}
-          onChange={(e) => setWorkoutType(e.target.value as WorkoutType)}
+          id="mode"
+          value={mode}
+          onChange={(e) => {
+            const val = e.target.value;
+            setMode(
+              val === "echo" ? WorkoutMode.ECHO : (parseInt(val) as WorkoutModeType),
+            );
+          }}
         >
-          <option value="program">Program</option>
-          <option value="echo">Echo</option>
+          {Object.entries(WorkoutModeNames).map(([value, name]) => (
+            <option key={value} value={value}>
+              {name}
+            </option>
+          ))}
         </select>
       </div>
 
-      {workoutType === "program" ? (
-        <>
-          <div className="form-group">
-            <label htmlFor="mode">
-              {justLiftMode
-                ? "Base Mode (for resistance profile):"
-                : "Workout Mode:"}
-            </label>
-            <select
-              id="mode"
-              value={mode}
-              onChange={(e) =>
-                setMode(parseInt(e.target.value) as ProgramModeType)
-              }
-            >
-              <option value={ProgramMode.OLD_SCHOOL}>
-                {ProgramModeNames[ProgramMode.OLD_SCHOOL]}
-              </option>
-              <option value={ProgramMode.PUMP}>
-                {ProgramModeNames[ProgramMode.PUMP]}
-              </option>
-              <option value={ProgramMode.TUT}>
-                {ProgramModeNames[ProgramMode.TUT]}
-              </option>
-              <option value={ProgramMode.TUT_BEAST}>
-                {ProgramModeNames[ProgramMode.TUT_BEAST]}
-              </option>
-              <option value={ProgramMode.ECCENTRIC_ONLY}>
-                {ProgramModeNames[ProgramMode.ECCENTRIC_ONLY]}
-              </option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="weight">Weight per cable (kg):</label>
-            <input
-              type="number"
-              id="weight"
-              value={weight}
-              onChange={(e) => setWeight(parseFloat(e.target.value))}
-              min={0}
-              max={100}
-              step={0.5}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="progression">
-              Progression/Regression (kg per rep):
-            </label>
-            <input
-              type="number"
-              id="progression"
-              value={progression}
-              onChange={(e) => setProgression(parseFloat(e.target.value))}
-              min={-3}
-              max={3}
-              step={0.1}
-            />
-            <div
-              style={{ fontSize: "0.75em", color: "#6c757d", marginTop: "5px" }}
-            >
-              +3 to -3 kg
-            </div>
-          </div>
-        </>
-      ) : (
+      {isEcho ? (
         <>
           <div className="form-group">
             <label htmlFor="echoLevel">Echo Level:</label>
@@ -182,6 +126,41 @@ export function WorkoutSection({
             </div>
           </div>
         </>
+      ) : (
+        <>
+          <div className="form-group">
+            <label htmlFor="weight">Weight per cable (kg):</label>
+            <input
+              type="number"
+              id="weight"
+              value={weight}
+              onChange={(e) => setWeight(parseFloat(e.target.value))}
+              min={0}
+              max={100}
+              step={0.5}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="progression">
+              Progression/Regression (kg per rep):
+            </label>
+            <input
+              type="number"
+              id="progression"
+              value={progression}
+              onChange={(e) => setProgression(parseFloat(e.target.value))}
+              min={-3}
+              max={3}
+              step={0.1}
+            />
+            <div
+              style={{ fontSize: "0.75em", color: "#6c757d", marginTop: "5px" }}
+            >
+              +3 to -3 kg
+            </div>
+          </div>
+        </>
       )}
 
       <div
@@ -195,8 +174,8 @@ export function WorkoutSection({
             id="reps"
             value={reps}
             onChange={(e) => setReps(parseInt(e.target.value))}
-            min={workoutType === "program" ? 1 : 0}
-            max={workoutType === "program" ? 100 : 30}
+            min={isEcho ? 0 : 1}
+            max={isEcho ? 30 : 100}
             disabled={justLiftMode}
             style={{ opacity: justLiftMode ? 0.5 : 1 }}
           />
@@ -231,9 +210,7 @@ export function WorkoutSection({
         </div>
       </div>
 
-      <button onClick={handleStart}>
-        Start {workoutType === "program" ? "Program" : "Echo"}
-      </button>
+      <button onClick={handleStart}>Start Workout</button>
     </div>
   );
 }
