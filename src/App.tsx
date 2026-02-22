@@ -259,8 +259,8 @@ export function App() {
         {/* Main content */}
         <main className="main-content">
           <div className="live-view-container">
-            {/* Live stats card */}
-            <div className="live-card">
+            {/* Live controls card */}
+            <div className="content-card">
               <h2>Live Workout Data</h2>
 
               {/* Rep Counters */}
@@ -286,15 +286,16 @@ export function App() {
 
               {/* Stats Grid */}
               <StatsGrid liveStats={liveStats} />
+            </div>
 
-              {/* Load Graph and History Section */}
+            {/* Analytics card */}
+            <div className="content-card">
               <div
                 id="graphHistoryContainer"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr",
                   gap: "20px",
-                  marginBottom: "20px",
                 }}
               >
                 <LoadChart
