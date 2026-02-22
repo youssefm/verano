@@ -1,40 +1,23 @@
 // components/Sidebar.tsx - Sidebar component with mobile support
 
-import React from "react";
 import { ConnectionSection } from "./ConnectionSection";
-import { ProgramSection } from "./ProgramSection";
-import { EchoSection } from "./EchoSection";
-import { ProgramModeType, EchoLevelType } from "../modes";
+import { WorkoutSection } from "./WorkoutSection";
+import { WorkoutConfig } from "../types";
 
 interface SidebarProps {
   isOpen: boolean;
-  onClose: () => void;
   isConnected: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
-  onStartProgram: (
-    mode: ProgramModeType,
-    weight: number,
-    reps: number,
-    progression: number,
-    isJustLift: boolean
-  ) => void;
-  onStartEcho: (
-    level: EchoLevelType,
-    eccentricPct: number,
-    targetReps: number,
-    isJustLift: boolean
-  ) => void;
+  onStartWorkout: (config: WorkoutConfig) => void;
 }
 
 export function Sidebar({
   isOpen,
-  onClose,
   isConnected,
   onConnect,
   onDisconnect,
-  onStartProgram,
-  onStartEcho,
+  onStartWorkout,
 }: SidebarProps) {
   return (
     <aside className={`sidebar ${isOpen ? "open" : ""}`}>
@@ -50,12 +33,10 @@ export function Sidebar({
           onDisconnect={onDisconnect}
         />
 
-        <ProgramSection
+        <WorkoutSection
           isConnected={isConnected}
-          onStartProgram={onStartProgram}
+          onStartWorkout={onStartWorkout}
         />
-
-        <EchoSection isConnected={isConnected} onStartEcho={onStartEcho} />
       </div>
     </aside>
   );

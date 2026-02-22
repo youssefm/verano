@@ -33,20 +33,24 @@ export interface LogEntry {
   timestamp: Date;
 }
 
-export interface ProgramFormState {
+export interface ProgramWorkoutConfig {
+  type: "program";
   mode: ProgramModeType;
   weight: number;
-  progression: number;
   reps: number;
-  justLiftMode: boolean;
+  progression: number;
+  isJustLift: boolean;
 }
 
-export interface EchoFormState {
+export interface EchoWorkoutConfig {
+  type: "echo";
   level: EchoLevelType;
   eccentricPct: number;
   targetReps: number;
-  justLiftMode: boolean;
+  isJustLift: boolean;
 }
+
+export type WorkoutConfig = ProgramWorkoutConfig | EchoWorkoutConfig;
 
 export interface LiveStats {
   posA: number;

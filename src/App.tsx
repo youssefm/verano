@@ -11,13 +11,8 @@ import {
   WorkoutHistory,
 } from "./components";
 import { useDevice, useWorkout, useChart } from "./hooks";
-import {
-  ProgramModeType,
-  EchoLevelType,
-  ProgramModeNames,
-  EchoLevelNames,
-} from "./modes";
-import { DeviceProgramParams, DeviceEchoParams } from "./device";
+import { ProgramModeNames, EchoLevelNames } from "./modes";
+import { WorkoutConfig } from "./types";
 import "./styles.css";
 
 export function App() {
@@ -87,136 +82,106 @@ export function App() {
       handleMonitorSample(sample);
       addData(sample);
     },
-    [handleMonitorSample, addData]
+    [handleMonitorSample, addData],
   );
 
-  // Start program handler
-  const handleStartProgram = useCallback(
-    async (
-      mode: ProgramModeType,
-      weight: number,
-      reps: number,
-      progression: number,
-      isJustLift: boolean
-    ) => {
-      const perCableKg = weight;
-      const effectiveKg = perCableKg + 10.0;
+  // Start workout handler
+  const handleStartWorkout = useCallback(
+    async (config: WorkoutConfig) => {
+      let modeName: string;
+      let weightKg: number;
+      let reps: number;
+      let isJustLift: boolean;
+      let sendDevice: () => Promise<void>;
 
-      // Validate inputs
-      if (isNaN(weight) || weight < 0 || weight > 100) {
-        alert("Please enter a valid weight (0-100 kg)");
-        return;
+      if (config.type === "program") {
+        const { mode, weight, reps: configReps, progression } = config;
+        const perCableKg = weight;
+        const effectiveKg = perCableKg + 10.0;
+        isJustLift = config.isJustLift;
+        reps = configReps;
+        weightKg = perCableKg;
+
+        if (isNaN(weight) || weight < 0 || weight > 100) {
+          alert("Please enter a valid weight (0-100 kg)");
+          return;
+        }
+
+        if (!isJustLift && (isNaN(reps) || reps < 1 || reps > 100)) {
+          alert("Please enter a valid number of reps (1-100)");
+          return;
+        }
+
+        if (isNaN(progression) || progression < -3 || progression > 3) {
+          alert("Please enter a valid progression (-3 to 3 kg)");
+          return;
+        }
+
+        modeName = isJustLift
+          ? `Just Lift (${ProgramModeNames[mode]})`
+          : ProgramModeNames[mode];
+
+        sendDevice = () =>
+          startProgram({
+            mode,
+            baseMode: mode,
+            isJustLift,
+            reps,
+            perCableKg,
+            perCableDisplay: perCableKg,
+            effectiveKg,
+            effectiveDisplay: effectiveKg,
+            progressionKg: progression,
+            displayUnit: "kg",
+            sequenceID: 0x0b,
+          });
+      } else {
+        const { level, eccentricPct, targetReps } = config;
+        isJustLift = config.isJustLift;
+        reps = targetReps;
+        weightKg = 0;
+
+        if (isNaN(eccentricPct) || eccentricPct < 0 || eccentricPct > 150) {
+          alert("Please enter a valid eccentric percentage (0-150)");
+          return;
+        }
+
+        if (
+          !isJustLift &&
+          (isNaN(targetReps) || targetReps < 0 || targetReps > 30)
+        ) {
+          alert("Please enter valid target reps (0-30)");
+          return;
+        }
+
+        modeName = isJustLift
+          ? `Just Lift Echo ${EchoLevelNames[level]}`
+          : `Echo ${EchoLevelNames[level]}`;
+
+        sendDevice = () =>
+          startEcho({
+            level,
+            eccentricPct,
+            warmupReps: 3,
+            targetReps,
+            isJustLift,
+            sequenceID: 0x01,
+          });
       }
-
-      if (!isJustLift && (isNaN(reps) || reps < 1 || reps > 100)) {
-        alert("Please enter a valid number of reps (1-100)");
-        return;
-      }
-
-      if (isNaN(progression) || progression < -3 || progression > 3) {
-        alert("Please enter a valid progression (-3 to 3 kg)");
-        return;
-      }
-
-      const modeName = isJustLift
-        ? `Just Lift (${ProgramModeNames[mode]})`
-        : ProgramModeNames[mode];
-
-      const params: DeviceProgramParams = {
-        mode: mode,
-        baseMode: mode,
-        isJustLift: isJustLift,
-        reps: reps,
-        perCableKg: perCableKg,
-        perCableDisplay: perCableKg,
-        effectiveKg: effectiveKg,
-        effectiveDisplay: effectiveKg,
-        progressionKg: progression,
-        displayUnit: "kg",
-        sequenceID: 0x0b,
-      };
 
       try {
-        startWorkout(modeName, perCableKg, reps, isJustLift);
-        await startProgram(params);
-
-        // Set up listeners
+        startWorkout(modeName, weightKg, reps, isJustLift);
+        await sendDevice();
         addMonitorListener(onMonitorSample);
         addRepListener(handleRepNotification);
-
-        // Close sidebar on mobile
         setSidebarOpen(false);
       } catch (error) {
-        addLog(`Failed to start program: ${(error as Error).message}`, "error");
+        addLog(`Failed to start workout: ${(error as Error).message}`, "error");
         resetWorkout();
       }
     },
     [
       startProgram,
-      addMonitorListener,
-      addRepListener,
-      startWorkout,
-      resetWorkout,
-      addLog,
-      onMonitorSample,
-      handleRepNotification,
-    ]
-  );
-
-  // Start echo handler
-  const handleStartEcho = useCallback(
-    async (
-      level: EchoLevelType,
-      eccentricPct: number,
-      targetReps: number,
-      isJustLift: boolean
-    ) => {
-      // Validate inputs
-      if (isNaN(eccentricPct) || eccentricPct < 0 || eccentricPct > 150) {
-        alert("Please enter a valid eccentric percentage (0-150)");
-        return;
-      }
-
-      if (
-        !isJustLift &&
-        (isNaN(targetReps) || targetReps < 0 || targetReps > 30)
-      ) {
-        alert("Please enter valid target reps (0-30)");
-        return;
-      }
-
-      const modeName = isJustLift
-        ? `Just Lift Echo ${EchoLevelNames[level]}`
-        : `Echo ${EchoLevelNames[level]}`;
-
-      const params: DeviceEchoParams = {
-        level: level,
-        eccentricPct: eccentricPct,
-        warmupReps: 3,
-        targetReps: targetReps,
-        isJustLift: isJustLift,
-        sequenceID: 0x01,
-      };
-
-      try {
-        startWorkout(modeName, 0, targetReps, isJustLift);
-        await startEcho(params);
-
-        // Set up listeners
-        addMonitorListener(onMonitorSample);
-        addRepListener(handleRepNotification);
-
-        // Close sidebar on mobile
-        setSidebarOpen(false);
-      } catch (error) {
-        addLog(
-          `Failed to start Echo mode: ${(error as Error).message}`,
-          "error"
-        );
-        resetWorkout();
-      }
-    },
-    [
       startEcho,
       addMonitorListener,
       addRepListener,
@@ -225,7 +190,7 @@ export function App() {
       addLog,
       onMonitorSample,
       handleRepNotification,
-    ]
+    ],
   );
 
   // Stop workout handler
@@ -246,7 +211,7 @@ export function App() {
         viewWorkout(workout);
       }
     },
-    [viewWorkoutOnGraph, viewWorkout]
+    [viewWorkoutOnGraph, viewWorkout],
   );
 
   // Handle time range change
@@ -255,7 +220,7 @@ export function App() {
       setCurrentTimeRange(seconds);
       setTimeRange(seconds);
     },
-    [setTimeRange]
+    [setTimeRange],
   );
 
   // Log startup messages
@@ -291,12 +256,10 @@ export function App() {
         {/* Sidebar */}
         <Sidebar
           isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
           isConnected={isConnected}
           onConnect={connect}
           onDisconnect={disconnect}
-          onStartProgram={handleStartProgram}
-          onStartEcho={handleStartEcho}
+          onStartWorkout={handleStartWorkout}
         />
 
         {/* Main content */}

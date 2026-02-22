@@ -32,7 +32,7 @@ export interface UseWorkoutReturn {
     mode: string,
     weightKg: number,
     reps: number,
-    isJustLift: boolean
+    isJustLift: boolean,
   ) => void;
   completeWorkout: () => void;
   resetWorkout: () => void;
@@ -49,10 +49,10 @@ const WINDOW_SIZE_WORKING = 3;
 export function useWorkout(
   addLog: (message: string, type: "info" | "success" | "error") => void,
   onAutoStop: () => void,
-  onWorkoutComplete: () => void
+  onWorkoutComplete: () => void,
 ): UseWorkoutReturn {
   const [currentWorkout, setCurrentWorkout] = useState<CurrentWorkout | null>(
-    null
+    null,
   );
   const [warmupReps, setWarmupReps] = useState(0);
   const [workingReps, setWorkingReps] = useState(0);
@@ -135,7 +135,7 @@ export function useWorkout(
         topPositionsB.current.shift();
       updateRepRanges();
     },
-    [getWindowSize, updateRepRanges]
+    [getWindowSize, updateRepRanges],
   );
 
   const recordBottomPosition = useCallback(
@@ -149,7 +149,7 @@ export function useWorkout(
         bottomPositionsB.current.shift();
       updateRepRanges();
     },
-    [getWindowSize, updateRepRanges]
+    [getWindowSize, updateRepRanges],
   );
 
   const checkAutoStop = useCallback(
@@ -187,7 +187,7 @@ export function useWorkout(
           autoStopStartTime.current = Date.now();
           addLog(
             "Near bottom of range, starting auto-stop timer (5s)...",
-            "info"
+            "info",
           );
         }
 
@@ -207,7 +207,7 @@ export function useWorkout(
         setAutoStopProgress(0);
       }
     },
-    [addLog, onAutoStop]
+    [addLog, onAutoStop],
   );
 
   const handleMonitorSample = useCallback(
@@ -236,7 +236,7 @@ export function useWorkout(
         });
       }
     },
-    [maxPos, isJustLiftMode, checkAutoStop]
+    [maxPos, isJustLiftMode, checkAutoStop],
   );
 
   const handleRepNotification = useCallback(
@@ -260,7 +260,7 @@ export function useWorkout(
         `Rep notification: top=${topCounter}, complete=${completeCounter}, pos=[${
           sample?.posA || "?"
         }, ${sample?.posB || "?"}]`,
-        "info"
+        "info",
       );
 
       if (!sample || !currentWorkout) return;
@@ -279,7 +279,7 @@ export function useWorkout(
         if (topDelta > 0) {
           addLog(
             `TOP detected! Counter: ${lastTopCounter.current} -> ${topCounter}, pos=[${sample.posA}, ${sample.posB}]`,
-            "success"
+            "success",
           );
           recordTopPosition(sample.posA, sample.posB);
           lastTopCounter.current = topCounter;
@@ -293,7 +293,7 @@ export function useWorkout(
           ) {
             addLog(
               "Reached top of final rep! Auto-completing workout...",
-              "success"
+              "success",
             );
             onAutoStop();
             onWorkoutComplete();
@@ -317,7 +317,7 @@ export function useWorkout(
       if (delta > 0) {
         addLog(
           `BOTTOM detected! Counter: ${lastRepCounter.current} -> ${completeCounter}, pos=[${sample.posA}, ${sample.posB}]`,
-          "success"
+          "success",
         );
         recordBottomPosition(sample.posA, sample.posB);
 
@@ -328,13 +328,13 @@ export function useWorkout(
             const newCount = prev + 1;
             addLog(
               `Warmup rep ${newCount}/${warmupTarget} complete`,
-              "success"
+              "success",
             );
 
             // Record warmup end time
             if (newCount === warmupTarget) {
               setCurrentWorkout((workout) =>
-                workout ? { ...workout, warmupEndTime: new Date() } : null
+                workout ? { ...workout, warmupEndTime: new Date() } : null,
               );
             }
             return newCount;
@@ -345,7 +345,7 @@ export function useWorkout(
             if (targetReps > 0) {
               addLog(
                 `Working rep ${newCount}/${targetReps} complete`,
-                "success"
+                "success",
               );
             } else {
               addLog(`Working rep ${newCount} complete`, "success");
@@ -360,7 +360,7 @@ export function useWorkout(
             ) {
               addLog(
                 "Target reps reached! Auto-completing workout...",
-                "success"
+                "success",
               );
               onWorkoutComplete();
             }
@@ -383,7 +383,7 @@ export function useWorkout(
       recordBottomPosition,
       onAutoStop,
       onWorkoutComplete,
-    ]
+    ],
   );
 
   const startWorkout = useCallback(
@@ -422,7 +422,7 @@ export function useWorkout(
         maxRepPosBRange: null,
       });
     },
-    []
+    [],
   );
 
   const completeWorkout = useCallback(() => {
@@ -481,7 +481,7 @@ export function useWorkout(
       }
       return workoutHistory[index];
     },
-    [workoutHistory, addLog]
+    [workoutHistory, addLog],
   );
 
   return {
