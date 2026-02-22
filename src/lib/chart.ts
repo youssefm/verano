@@ -43,8 +43,6 @@ export interface Workout {
   endTime?: Date;
 }
 
-export type LogCallback = (message: string, type: string) => void;
-
 export class ChartManager {
   containerId: string;
   chart: uPlot | null;
@@ -52,7 +50,6 @@ export class ChartManager {
   maxHistoryPoints: number;
   currentTimeRange: number | null;
   live: boolean;
-  onLog: LogCallback | null;
   updateInterval: ReturnType<typeof setInterval> | null;
   updateFrequency: number;
   loadUnit: LoadUnitConfig;
@@ -65,7 +62,6 @@ export class ChartManager {
     this.maxHistoryPoints = 72000; // 2hrs at 100ms polling (7200s / 0.1s = 72000 points)
     this.currentTimeRange = 30; // Current time range in seconds (default 30s)
     this.live = true;
-    this.onLog = null; // Callback for logging
     this.updateInterval = null; // Interval handle for periodic updates
     this.updateFrequency = 10; // Update chart every 10ms
     this.loadUnit = {
@@ -357,10 +353,9 @@ export class ChartManager {
       this.loadHistory.shift();
 
       // Log when we hit the limit for the first time
-      if (this.loadHistory.length === this.maxHistoryPoints && this.onLog) {
-        this.onLog(
-          "Reached 2hr data limit. Oldest data points will be removed as new data arrives.",
-          "info"
+      if (this.loadHistory.length === this.maxHistoryPoints) {
+        console.log(
+          "[INFO] Reached 2hr data limit. Oldest data points will be removed as new data arrives."
         );
       }
     }
@@ -526,12 +521,7 @@ export class ChartManager {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    if (this.onLog) {
-      this.onLog(
-        `Exported ${this.loadHistory.length} data points to CSV`,
-        "success"
-      );
-    }
+    console.log(`[SUCCESS] Exported ${this.loadHistory.length} data points to CSV`);
   }
 
   // Clear all data
@@ -564,9 +554,7 @@ export class ChartManager {
   // View a specific workout on the graph
   viewWorkout(workout: Workout): void {
     if (!workout.startTime || !workout.endTime) {
-      if (this.onLog) {
-        this.onLog("Workout does not have timing information", "error");
-      }
+      console.error("[ERROR] Workout does not have timing information");
       return;
     }
 
@@ -623,8 +611,6 @@ export class ChartManager {
       });
     }
 
-    if (this.onLog) {
-      this.onLog(`Viewing workout: ${workout.mode}`, "info");
-    }
+    console.log(`[SUCCESS] Viewing workout: ${workout.mode}`);
   }
 }

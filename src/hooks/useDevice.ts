@@ -7,7 +7,6 @@ import {
   DeviceEchoParams,
 } from "../lib/device";
 import { MonitorSample } from "../lib/chart";
-import { LogEntry } from "../lib/types";
 
 export interface UseDeviceReturn {
   isConnected: boolean;
@@ -18,15 +17,10 @@ export interface UseDeviceReturn {
   startEcho: (params: DeviceEchoParams) => Promise<void>;
   addMonitorListener: (listener: (sample: MonitorSample) => void) => void;
   addRepListener: (listener: (data: Uint8Array) => void) => void;
-  logs: LogEntry[];
-  addLog: (message: string, type: "info" | "success" | "error") => void;
-  clearLogs: () => void;
 }
 
 export function useDevice(): UseDeviceReturn {
   const [isConnected, setIsConnected] = useState(false);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const logIdRef = useRef(0);
   const deviceRef = useRef<VitruvianDevice | null>(null);
 
   // Initialize device on mount
@@ -37,46 +31,10 @@ export function useDevice(): UseDeviceReturn {
     };
   }, []);
 
-  const addLog = useCallback(
-    (message: string, type: "info" | "success" | "error" = "info") => {
-      setLogs((prev) => {
-        const newLogs = [
-          ...prev,
-          {
-            id: ++logIdRef.current,
-            message,
-            type,
-            timestamp: new Date(),
-          },
-        ];
-        // Keep only last 500 entries
-        if (newLogs.length > 500) {
-          return newLogs.slice(-500);
-        }
-        return newLogs;
-      });
-    },
-    [],
-  );
-
-  const clearLogs = useCallback(() => {
-    setLogs([]);
-  }, []);
-
-  // Set up device logging
-  useEffect(() => {
-    if (deviceRef.current) {
-      deviceRef.current.onLog = (message: string, type: string) => {
-        addLog(message, type as "info" | "success" | "error");
-      };
-    }
-  }, [addLog]);
-
   const connect = useCallback(async () => {
     if (!navigator.bluetooth) {
-      addLog(
-        "Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera.",
-        "error",
+      console.error(
+        "[ERROR] Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera.",
       );
       throw new Error("Web Bluetooth not supported");
     }
@@ -86,31 +44,31 @@ export function useDevice(): UseDeviceReturn {
       setIsConnected(true);
       await deviceRef.current?.sendInit();
     } catch (error) {
-      addLog(`Connection failed: ${(error as Error).message}`, "error");
+      console.error(`[ERROR] Connection failed: ${(error as Error).message}`);
       setIsConnected(false);
       throw error;
     }
-  }, [addLog]);
+  }, []);
 
   const disconnect = useCallback(async () => {
     try {
       await deviceRef.current?.disconnect();
       setIsConnected(false);
     } catch (error) {
-      addLog(`Disconnect failed: ${(error as Error).message}`, "error");
+      console.error(`[ERROR] Disconnect failed: ${(error as Error).message}`);
       throw error;
     }
-  }, [addLog]);
+  }, []);
 
   const sendStopCommand = useCallback(async () => {
     try {
       await deviceRef.current?.sendStopCommand();
-      addLog("Workout stopped by user", "info");
+      console.log("[INFO] Workout stopped by user");
     } catch (error) {
-      addLog(`Failed to stop workout: ${(error as Error).message}`, "error");
+      console.error(`[ERROR] Failed to stop workout: ${(error as Error).message}`);
       throw error;
     }
-  }, [addLog]);
+  }, []);
 
   const startProgram = useCallback(async (params: DeviceProgramParams) => {
     await deviceRef.current?.startProgram(params);
@@ -152,8 +110,5 @@ export function useDevice(): UseDeviceReturn {
     startEcho,
     addMonitorListener,
     addRepListener,
-    logs,
-    addLog,
-    clearLogs,
   };
 }

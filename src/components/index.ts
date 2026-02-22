@@ -1,6 +1,5 @@
 // components/index.ts - Export all components
 
-export { ConsoleLog } from "./ConsoleLog";
 export { PositionBars } from "./PositionBars";
 export { StatsGrid } from "./StatsGrid";
 export { RepCounters } from "./RepCounters";

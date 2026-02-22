@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Sidebar,
-  ConsoleLog,
   PositionBars,
   StatsGrid,
   RepCounters,
@@ -29,13 +28,11 @@ export function App() {
     startEcho,
     addMonitorListener,
     addRepListener,
-    logs,
-    addLog,
   } = useDevice();
 
   // Chart hook for visualization
   const { initChart, addData, setTimeRange, exportCSV, viewWorkout } =
-    useChart(addLog);
+    useChart();
 
   // Auto-stop and workout complete handlers (defined before useWorkout)
   const handleAutoStop = useCallback(async () => {
@@ -65,7 +62,7 @@ export function App() {
     handleMonitorSample,
     handleRepNotification,
     viewWorkoutOnGraph,
-  } = useWorkout(addLog, handleAutoStop, () => {
+  } = useWorkout(handleAutoStop, () => {
     completeWorkout();
   });
 
@@ -176,7 +173,7 @@ export function App() {
         addRepListener(handleRepNotification);
         setSidebarOpen(false);
       } catch (error) {
-        addLog(`Failed to start workout: ${(error as Error).message}`, "error");
+        console.error(`[ERROR] Failed to start workout: ${(error as Error).message}`);
         resetWorkout();
       }
     },
@@ -187,7 +184,6 @@ export function App() {
       addRepListener,
       startWorkout,
       resetWorkout,
-      addLog,
       onMonitorSample,
       handleRepNotification,
     ],
@@ -199,9 +195,9 @@ export function App() {
       await sendStopCommand();
       completeWorkout();
     } catch (error) {
-      addLog(`Failed to stop workout: ${(error as Error).message}`, "error");
+      console.error(`[ERROR] Failed to stop workout: ${(error as Error).message}`);
     }
-  }, [sendStopCommand, completeWorkout, addLog]);
+  }, [sendStopCommand, completeWorkout]);
 
   // Handle viewing workout on graph
   const handleViewGraph = useCallback(
@@ -223,16 +219,10 @@ export function App() {
     [setTimeRange],
   );
 
-  // Log startup messages
+  // Log startup message
   useEffect(() => {
-    addLog("Vitruvian Web Control Ready", "success");
-    addLog('Click "Connect to Device" to begin', "info");
-    addLog("", "info");
-    addLog("Requirements:", "info");
-    addLog("- Chrome, Edge, or Opera browser", "info");
-    addLog("- HTTPS connection (or localhost)", "info");
-    addLog("- Bluetooth enabled on your device", "info");
-  }, [addLog]);
+    console.log("[SUCCESS] Vitruvian Web Control Ready");
+  }, []);
 
   return (
     <>
@@ -316,9 +306,6 @@ export function App() {
                 />
               </div>
             </div>
-
-            {/* Log card */}
-            <ConsoleLog logs={logs} />
           </div>
         </main>
       </div>

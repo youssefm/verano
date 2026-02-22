@@ -37,7 +37,6 @@ const NOTIFY_CHAR_UUIDS = [
   "ef0e485a-8749-4314-b1be-01e57cd1712e",
 ];
 
-export type LogCallback = (message: string, type: string) => void;
 export type PropertyListener = (data: Uint8Array) => void;
 export type MonitorListener = (sample: MonitorSample) => void;
 export type RepListener = (data: Uint8Array) => void;
@@ -69,7 +68,6 @@ export class VitruvianDevice {
   isConnected: boolean;
   propertyInterval: ReturnType<typeof setInterval> | null;
   monitorInterval: ReturnType<typeof setInterval> | null;
-  onLog: LogCallback | null;
   propertyListeners: PropertyListener[];
   repListeners: RepListener[];
   monitorListeners: MonitorListener[];
@@ -88,7 +86,6 @@ export class VitruvianDevice {
     this.isConnected = false;
     this.propertyInterval = null;
     this.monitorInterval = null;
-    this.onLog = null; // Callback for logging
     this.propertyListeners = [];
     this.repListeners = [];
     this.monitorListeners = [];
@@ -101,9 +98,10 @@ export class VitruvianDevice {
   }
 
   log(message: string, type: string = "info"): void {
-    console.log(`[${type}] ${message}`);
-    if (this.onLog) {
-      this.onLog(message, type);
+    if (type === "error") {
+      console.error(`[${type.toUpperCase()}]`, message);
+    } else {
+      console.log(`[${type.toUpperCase()}]`, message);
     }
   }
 
@@ -263,7 +261,7 @@ export class VitruvianDevice {
                 const value = new Uint8Array(target.value!.buffer);
                 this.log(`[notify rep] ${bytesToHex(value)}`, "info");
                 this.dispatchRepNotification(value);
-              }
+              },
             );
           } else {
             // Generic handler for other notifications
@@ -275,7 +273,7 @@ export class VitruvianDevice {
                   event.target as BluetoothRemoteGATTCharacteristic;
                 const value = new Uint8Array(target.value!.buffer);
                 this.log(`[notify ${uuid}] ${bytesToHex(value)}`, "info");
-              }
+              },
             );
           }
           this.log("    -> Notifications active", "success");
@@ -286,7 +284,7 @@ export class VitruvianDevice {
     } catch (error) {
       this.log(
         `Failed to enable notifications: ${(error as Error).message}`,
-        "error"
+        "error",
       );
     }
   }
@@ -294,7 +292,7 @@ export class VitruvianDevice {
   // Write to RX characteristic with response
   async writeWithResponse(
     label: string,
-    payload: Uint8Array
+    payload: Uint8Array,
   ): Promise<boolean> {
     return this.queueGattOperation(async (): Promise<boolean> => {
       try {
@@ -313,7 +311,7 @@ export class VitruvianDevice {
   // Write to RX characteristic without response
   async writeWithoutResponse(
     label: string,
-    payload: Uint8Array
+    payload: Uint8Array,
   ): Promise<boolean> {
     return this.queueGattOperation(async (): Promise<boolean> => {
       try {
@@ -385,12 +383,12 @@ export class VitruvianDevice {
     if (params.isJustLift) {
       this.log(
         `\nStarting ${modeStr} mode: ${formattedPerCable} per cable (${formattedEffective} effective)`,
-        "info"
+        "info",
       );
     } else {
       this.log(
         `\nStarting ${modeStr} mode: ${params.reps} reps, ${formattedPerCable} per cable (${formattedEffective} effective)`,
-        "info"
+        "info",
       );
     }
 
@@ -410,14 +408,14 @@ export class VitruvianDevice {
     const levelStr = EchoLevelNames[params.level as EchoLevelType];
     this.log(
       `\nStarting Echo mode: ${levelStr} level, ${params.eccentricPct}% eccentric`,
-      "info"
+      "info",
     );
 
     this.log(
       `Sending Echo control frame (${frame.length} bytes): ${bytesToHex(
-        frame
+        frame,
       )}`,
-      "info"
+      "info",
     );
     await this.writeWithResponse("Echo control", frame);
     this.log("Echo mode started successfully!", "success");
@@ -444,7 +442,7 @@ export class VitruvianDevice {
     this.propertyInterval = setInterval(async () => {
       try {
         const value = await this.queueGattOperation(() =>
-          this.propertyChar!.readValue()
+          this.propertyChar!.readValue(),
         );
         const data = new Uint8Array((value as DataView).buffer);
         this.dispatchProperty(data);
@@ -477,13 +475,13 @@ export class VitruvianDevice {
 
     this.log(
       "Started monitor polling (0x0039) every 100ms for live stats",
-      "success"
+      "success",
     );
 
     this.monitorInterval = setInterval(async () => {
       try {
         const value = await this.queueGattOperation(() =>
-          this.monitorChar!.readValue()
+          this.monitorChar!.readValue(),
         );
         const data = new Uint8Array((value as DataView).buffer);
         const sample = this.parseMonitorData(data);

@@ -18,22 +18,17 @@ export interface UseChartReturn {
   clearEventMarkers: () => void;
 }
 
-export function useChart(
-  addLog: (message: string, type: "info" | "success" | "error") => void,
-): UseChartReturn {
+export function useChart(): UseChartReturn {
   const chartManagerRef = useRef<ChartManager | null>(null);
 
   const initChart = useCallback(
     (containerId: string) => {
       if (!chartManagerRef.current) {
         chartManagerRef.current = new ChartManager(containerId);
-        chartManagerRef.current.onLog = (message: string, type: string) => {
-          addLog(message, type as "info" | "success" | "error");
-        };
       }
       chartManagerRef.current.init();
     },
-    [addLog],
+    [],
   );
 
   const addData = useCallback((sample: MonitorSample) => {

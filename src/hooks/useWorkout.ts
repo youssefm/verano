@@ -47,7 +47,6 @@ const WINDOW_SIZE_WARMUP = 2;
 const WINDOW_SIZE_WORKING = 3;
 
 export function useWorkout(
-  addLog: (message: string, type: "info" | "success" | "error") => void,
   onAutoStop: () => void,
   onWorkoutComplete: () => void,
 ): UseWorkoutReturn {
@@ -185,9 +184,8 @@ export function useWorkout(
       if (inDangerZone) {
         if (autoStopStartTime.current === null) {
           autoStopStartTime.current = Date.now();
-          addLog(
-            "Near bottom of range, starting auto-stop timer (5s)...",
-            "info",
+          console.log(
+            "[INFO] Near bottom of range, starting auto-stop timer (5s)...",
           );
         }
 
@@ -196,18 +194,18 @@ export function useWorkout(
         setAutoStopProgress(progress);
 
         if (elapsed >= AUTO_STOP_DURATION) {
-          addLog("Auto-stop triggered! Finishing workout...", "success");
+          console.log("[SUCCESS] Auto-stop triggered! Finishing workout...");
           onAutoStop();
         }
       } else {
         if (autoStopStartTime.current !== null) {
-          addLog("Moved out of danger zone, timer reset", "info");
+          console.log("[INFO] Moved out of danger zone, timer reset");
           autoStopStartTime.current = null;
         }
         setAutoStopProgress(0);
       }
     },
-    [addLog, onAutoStop],
+    [onAutoStop],
   );
 
   const handleMonitorSample = useCallback(
@@ -256,11 +254,10 @@ export function useWorkout(
       const completeCounter = u16Values[2];
       const sample = currentSampleRef.current;
 
-      addLog(
-        `Rep notification: top=${topCounter}, complete=${completeCounter}, pos=[${
+      console.log(
+        `[INFO] Rep notification: top=${topCounter}, complete=${completeCounter}, pos=[${
           sample?.posA || "?"
         }, ${sample?.posB || "?"}]`,
-        "info",
       );
 
       if (!sample || !currentWorkout) return;
@@ -277,9 +274,8 @@ export function useWorkout(
         }
 
         if (topDelta > 0) {
-          addLog(
-            `TOP detected! Counter: ${lastTopCounter.current} -> ${topCounter}, pos=[${sample.posA}, ${sample.posB}]`,
-            "success",
+          console.log(
+            `[SUCCESS] TOP detected! Counter: ${lastTopCounter.current} -> ${topCounter}, pos=[${sample.posA}, ${sample.posB}]`,
           );
           recordTopPosition(sample.posA, sample.posB);
           lastTopCounter.current = topCounter;
@@ -291,9 +287,8 @@ export function useWorkout(
             targetReps > 0 &&
             workingReps === targetReps - 1
           ) {
-            addLog(
-              "Reached top of final rep! Auto-completing workout...",
-              "success",
+            console.log(
+              "[SUCCESS] Reached top of final rep! Auto-completing workout...",
             );
             onAutoStop();
             onWorkoutComplete();
@@ -315,9 +310,8 @@ export function useWorkout(
       }
 
       if (delta > 0) {
-        addLog(
-          `BOTTOM detected! Counter: ${lastRepCounter.current} -> ${completeCounter}, pos=[${sample.posA}, ${sample.posB}]`,
-          "success",
+        console.log(
+          `[SUCCESS] BOTTOM detected! Counter: ${lastRepCounter.current} -> ${completeCounter}, pos=[${sample.posA}, ${sample.posB}]`,
         );
         recordBottomPosition(sample.posA, sample.posB);
 
@@ -326,9 +320,8 @@ export function useWorkout(
         if (totalReps <= warmupTarget) {
           setWarmupReps((prev) => {
             const newCount = prev + 1;
-            addLog(
-              `Warmup rep ${newCount}/${warmupTarget} complete`,
-              "success",
+            console.log(
+              `[SUCCESS] Warmup rep ${newCount}/${warmupTarget} complete`,
             );
 
             // Record warmup end time
@@ -343,12 +336,11 @@ export function useWorkout(
           setWorkingReps((prev) => {
             const newCount = prev + 1;
             if (targetReps > 0) {
-              addLog(
-                `Working rep ${newCount}/${targetReps} complete`,
-                "success",
+              console.log(
+                `[SUCCESS] Working rep ${newCount}/${targetReps} complete`,
               );
             } else {
-              addLog(`Working rep ${newCount} complete`, "success");
+              console.log(`[SUCCESS] Working rep ${newCount} complete`);
             }
 
             // Auto-complete when target reached (not for Just Lift, not for stopAtTop)
@@ -358,9 +350,8 @@ export function useWorkout(
               targetReps > 0 &&
               newCount >= targetReps
             ) {
-              addLog(
-                "Target reps reached! Auto-completing workout...",
-                "success",
+              console.log(
+                "[SUCCESS] Target reps reached! Auto-completing workout...",
               );
               onWorkoutComplete();
             }
@@ -378,7 +369,6 @@ export function useWorkout(
       warmupTarget,
       targetReps,
       isJustLiftMode,
-      addLog,
       recordTopPosition,
       recordBottomPosition,
       onAutoStop,
@@ -439,11 +429,11 @@ export function useWorkout(
       };
 
       setWorkoutHistory((prev) => [completedWorkout, ...prev]);
-      addLog("Workout completed and saved to history", "success");
+      console.log("[SUCCESS] Workout completed and saved to history");
     }
 
     resetWorkout();
-  }, [currentWorkout, workingReps, addLog]);
+  }, [currentWorkout, workingReps]);
 
   const resetWorkout = useCallback(() => {
     setCurrentWorkout(null);
@@ -476,12 +466,12 @@ export function useWorkout(
   const viewWorkoutOnGraph = useCallback(
     (index: number): Workout | null => {
       if (index < 0 || index >= workoutHistory.length) {
-        addLog("Invalid workout index", "error");
+        console.error("[ERROR] Invalid workout index");
         return null;
       }
       return workoutHistory[index];
     },
-    [workoutHistory, addLog],
+    [workoutHistory],
   );
 
   return {
