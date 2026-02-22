@@ -225,7 +225,7 @@ export function App() {
 
   // Log startup message
   useEffect(() => {
-    console.log("[SUCCESS] Vitruvian Web Control Ready");
+    console.log("[SUCCESS] Verano Ready");
   }, []);
 
   return (

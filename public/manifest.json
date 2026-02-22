@@ -1,6 +1,6 @@
 {
-  "name": "Vitruvian Workout Control",
-  "short_name": "Vitruvian",
+  "name": "Verano",
+  "short_name": "Verano",
   "description": "Control and monitor your Vitruvian trainer via Web Bluetooth",
   "start_url": "/",
   "display": "standalone",

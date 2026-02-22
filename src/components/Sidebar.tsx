@@ -22,7 +22,7 @@ export function Sidebar({
   return (
     <aside className={`sidebar ${isOpen ? "open" : ""}`}>
       <div className="sidebar-header">
-        <h1>Vitruvian Control</h1>
+        <h1>Verano</h1>
         <p>Web Bluetooth Interface</p>
       </div>
 
