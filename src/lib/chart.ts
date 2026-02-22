@@ -355,7 +355,7 @@ export class ChartManager {
       // Log when we hit the limit for the first time
       if (this.loadHistory.length === this.maxHistoryPoints) {
         console.log(
-          "[INFO] Reached 2hr data limit. Oldest data points will be removed as new data arrives."
+          "[INFO] Reached 2hr data limit. Oldest data points will be removed as new data arrives.",
         );
       }
     }
@@ -384,9 +384,8 @@ export class ChartManager {
     };
 
     if (this.chart && this.chart.axes && this.chart.axes[1]) {
-      (
-        this.chart.axes[1] as uPlot.Axis
-      ).label = `Load (${this.loadUnit.label})`;
+      (this.chart.axes[1] as uPlot.Axis).label =
+        `Load (${this.loadUnit.label})`;
       this.updateChartData();
     }
   }
@@ -417,7 +416,7 @@ export class ChartManager {
       const displayA = this.loadUnit.toDisplay(point.loadA);
 
       totalLoads.push(
-        displayTotal != null && isFinite(displayTotal) ? displayTotal : 0
+        displayTotal != null && isFinite(displayTotal) ? displayTotal : 0,
       );
       loadsB.push(displayB != null && isFinite(displayB) ? displayB : 0);
       loadsA.push(displayA != null && isFinite(displayA) ? displayA : 0);
@@ -521,7 +520,9 @@ export class ChartManager {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    console.log(`[SUCCESS] Exported ${this.loadHistory.length} data points to CSV`);
+    console.log(
+      `[SUCCESS] Exported ${this.loadHistory.length} data points to CSV`,
+    );
   }
 
   // Clear all data

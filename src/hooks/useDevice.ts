@@ -65,7 +65,9 @@ export function useDevice(): UseDeviceReturn {
       await deviceRef.current?.sendStopCommand();
       console.log("[INFO] Workout stopped by user");
     } catch (error) {
-      console.error(`[ERROR] Failed to stop workout: ${(error as Error).message}`);
+      console.error(
+        `[ERROR] Failed to stop workout: ${(error as Error).message}`,
+      );
       throw error;
     }
   }, []);

@@ -21,15 +21,12 @@ export interface UseChartReturn {
 export function useChart(): UseChartReturn {
   const chartManagerRef = useRef<ChartManager | null>(null);
 
-  const initChart = useCallback(
-    (containerId: string) => {
-      if (!chartManagerRef.current) {
-        chartManagerRef.current = new ChartManager(containerId);
-      }
-      chartManagerRef.current.init();
-    },
-    [],
-  );
+  const initChart = useCallback((containerId: string) => {
+    if (!chartManagerRef.current) {
+      chartManagerRef.current = new ChartManager(containerId);
+    }
+    chartManagerRef.current.init();
+  }, []);
 
   const addData = useCallback((sample: MonitorSample) => {
     chartManagerRef.current?.addData(sample);

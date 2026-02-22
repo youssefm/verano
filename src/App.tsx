@@ -173,7 +173,9 @@ export function App() {
         addRepListener(handleRepNotification);
         setSidebarOpen(false);
       } catch (error) {
-        console.error(`[ERROR] Failed to start workout: ${(error as Error).message}`);
+        console.error(
+          `[ERROR] Failed to start workout: ${(error as Error).message}`,
+        );
         resetWorkout();
       }
     },
@@ -195,7 +197,9 @@ export function App() {
       await sendStopCommand();
       completeWorkout();
     } catch (error) {
-      console.error(`[ERROR] Failed to stop workout: ${(error as Error).message}`);
+      console.error(
+        `[ERROR] Failed to stop workout: ${(error as Error).message}`,
+      );
     }
   }, [sendStopCommand, completeWorkout]);
 
