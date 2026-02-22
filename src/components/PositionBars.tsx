@@ -1,7 +1,7 @@
 // components/PositionBars.tsx - Cable position visualizer
 
 import React from "react";
-import { LiveStats, RepRanges } from "../types";
+import { LiveStats, RepRanges } from "../lib/types";
 
 interface PositionBarsProps {
   liveStats: LiveStats;
@@ -84,10 +84,10 @@ export function PositionBars({
     !isConnected && !hasActiveWorkout
       ? "Device disconnected and no workout active"
       : !isConnected
-      ? "Device disconnected"
-      : !hasActiveWorkout
-      ? "No workout active"
-      : "Stop the current workout";
+        ? "Device disconnected"
+        : !hasActiveWorkout
+          ? "No workout active"
+          : "Stop the current workout";
 
   // Calculate auto-stop circle progress
   const circumference = 220;

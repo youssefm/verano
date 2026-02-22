@@ -1,7 +1,12 @@
 // hooks/useChart.ts - Hook for managing chart state
 
 import { useRef, useCallback, useEffect } from "react";
-import { ChartManager, MonitorSample, Workout, EventMarker } from "../chart";
+import {
+  ChartManager,
+  MonitorSample,
+  Workout,
+  EventMarker,
+} from "../lib/chart";
 
 export interface UseChartReturn {
   chartManager: ChartManager | null;
@@ -14,7 +19,7 @@ export interface UseChartReturn {
 }
 
 export function useChart(
-  addLog: (message: string, type: "info" | "success" | "error") => void
+  addLog: (message: string, type: "info" | "success" | "error") => void,
 ): UseChartReturn {
   const chartManagerRef = useRef<ChartManager | null>(null);
 
@@ -28,7 +33,7 @@ export function useChart(
       }
       chartManagerRef.current.init();
     },
-    [addLog]
+    [addLog],
   );
 
   const addData = useCallback((sample: MonitorSample) => {

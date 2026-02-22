@@ -11,8 +11,8 @@ import {
   WorkoutHistory,
 } from "./components";
 import { useDevice, useWorkout, useChart } from "./hooks";
-import { ProgramModeNames, EchoLevelNames } from "./modes";
-import { WorkoutConfig } from "./types";
+import { ProgramModeNames, EchoLevelNames } from "./lib/modes";
+import { WorkoutConfig } from "./lib/types";
 import "./styles.css";
 
 export function App() {

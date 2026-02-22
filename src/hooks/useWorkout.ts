@@ -1,14 +1,14 @@
 // hooks/useWorkout.ts - Hook for managing workout state
 
 import { useState, useCallback, useRef } from "react";
-import { MonitorSample } from "../chart";
+import { MonitorSample } from "../lib/chart";
 import {
   CurrentWorkout,
   Workout,
   PositionRange,
   RepRanges,
   LiveStats,
-} from "../types";
+} from "../lib/types";
 
 export interface UseWorkoutReturn {
   // Workout state

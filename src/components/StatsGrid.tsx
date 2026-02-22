@@ -1,7 +1,7 @@
 // components/StatsGrid.tsx - Live statistics grid
 
 import React from "react";
-import { LiveStats } from "../types";
+import { LiveStats } from "../lib/types";
 
 interface StatsGridProps {
   liveStats: LiveStats;

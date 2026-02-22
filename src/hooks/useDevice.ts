@@ -5,9 +5,9 @@ import {
   VitruvianDevice,
   DeviceProgramParams,
   DeviceEchoParams,
-} from "../device";
-import { MonitorSample } from "../chart";
-import { LogEntry } from "../types";
+} from "../lib/device";
+import { MonitorSample } from "../lib/chart";
+import { LogEntry } from "../lib/types";
 
 export interface UseDeviceReturn {
   isConnected: boolean;
@@ -56,7 +56,7 @@ export function useDevice(): UseDeviceReturn {
         return newLogs;
       });
     },
-    []
+    [],
   );
 
   const clearLogs = useCallback(() => {
@@ -76,7 +76,7 @@ export function useDevice(): UseDeviceReturn {
     if (!navigator.bluetooth) {
       addLog(
         "Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera.",
-        "error"
+        "error",
       );
       throw new Error("Web Bluetooth not supported");
     }
@@ -124,7 +124,7 @@ export function useDevice(): UseDeviceReturn {
     (listener: (sample: MonitorSample) => void) => {
       deviceRef.current?.addMonitorListener(listener);
     },
-    []
+    [],
   );
 
   const addRepListener = useCallback((listener: (data: Uint8Array) => void) => {

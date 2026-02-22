@@ -8,8 +8,8 @@ import {
   EchoLevel,
   EchoLevelNames,
   EchoLevelType,
-} from "../modes";
-import { WorkoutConfig } from "../types";
+} from "../lib/modes";
+import { WorkoutConfig } from "../lib/types";
 
 type WorkoutType = "program" | "echo";
 

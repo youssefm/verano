@@ -2,7 +2,7 @@
 
 import { ConnectionSection } from "./ConnectionSection";
 import { WorkoutSection } from "./WorkoutSection";
-import { WorkoutConfig } from "../types";
+import { WorkoutConfig } from "../lib/types";
 
 interface SidebarProps {
   isOpen: boolean;
