@@ -20,16 +20,16 @@ export function StatsGrid({ liveStats }: StatsGridProps) {
   return (
     <div className="stats-grid">
       <div className="stat-card">
-        <div className="stat-label">Right Cable Load</div>
+        <div className="stat-label">Left Cable Load</div>
         <div className="stat-value">
-          {formatLoad(liveStats.loadA).split(" ")[0]}{" "}
+          {formatLoad(liveStats.loadB).split(" ")[0]}{" "}
           <span className="stat-unit">kg</span>
         </div>
       </div>
       <div className="stat-card">
-        <div className="stat-label">Left Cable Load</div>
+        <div className="stat-label">Right Cable Load</div>
         <div className="stat-value">
-          {formatLoad(liveStats.loadB).split(" ")[0]}{" "}
+          {formatLoad(liveStats.loadA).split(" ")[0]}{" "}
           <span className="stat-unit">kg</span>
         </div>
       </div>
@@ -39,10 +39,6 @@ export function StatsGrid({ liveStats }: StatsGridProps) {
           {formatLoad(totalLoad).split(" ")[0]}{" "}
           <span className="stat-unit">kg</span>
         </div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-label">Ticks</div>
-        <div className="stat-value">{liveStats.ticks}</div>
       </div>
     </div>
   );
