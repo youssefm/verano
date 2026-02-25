@@ -38,6 +38,13 @@ export function useDevice(): UseDeviceReturn {
     device.setMonitorListener((sample) => monitorListenerRef.current?.(sample));
     device.setRepListener((data) => repListenerRef.current?.(data));
 
+    // Handle device disconnection events
+    const originalHandleDisconnect = device.handleDisconnect.bind(device);
+    device.handleDisconnect = () => {
+      originalHandleDisconnect();
+      setIsConnected(false);
+    };
+
     return () => {
       device.disconnect();
     };
@@ -102,18 +109,6 @@ export function useDevice(): UseDeviceReturn {
 
   const setRepListener = useCallback((listener: (data: Uint8Array) => void) => {
     repListenerRef.current = listener;
-  }, []);
-
-  // Handle device disconnection events
-  useEffect(() => {
-    const device = deviceRef.current;
-    if (device) {
-      const originalHandleDisconnect = device.handleDisconnect.bind(device);
-      device.handleDisconnect = () => {
-        originalHandleDisconnect();
-        setIsConnected(false);
-      };
-    }
   }, []);
 
   return {
