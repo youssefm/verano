@@ -564,9 +564,19 @@ export class VitruvianDevice {
     this.monitorListeners.push(listener);
   }
 
+  // Set a single monitor listener (replaces any previous)
+  setMonitorListener(listener: MonitorListener): void {
+    this.monitorListeners = [listener];
+  }
+
   // Add listener for rep notifications
   addRepListener(listener: RepListener): void {
     this.repListeners.push(listener);
+  }
+
+  // Set a single rep listener (replaces any previous)
+  setRepListener(listener: RepListener): void {
+    this.repListeners = [listener];
   }
 
   // Dispatch property data to listeners

@@ -26,8 +26,8 @@ export function App() {
     sendStopCommand,
     startProgram,
     startEcho,
-    addMonitorListener,
-    addRepListener,
+    setMonitorListener,
+    setRepListener,
   } = useDevice();
 
   // Chart hook for visualization
@@ -81,6 +81,10 @@ export function App() {
     },
     [handleMonitorSample, addData],
   );
+
+  // Keep device listeners pointed at the latest handlers (just ref assignments)
+  setMonitorListener(onMonitorSample);
+  setRepListener(handleRepNotification);
 
   // Start workout handler
   const handleStartWorkout = useCallback(
@@ -169,8 +173,6 @@ export function App() {
       try {
         startWorkout(modeName, weightKg, reps, isJustLift);
         await sendDevice();
-        addMonitorListener(onMonitorSample);
-        addRepListener(handleRepNotification);
         setSidebarOpen(false);
       } catch (error) {
         console.error(
@@ -179,16 +181,7 @@ export function App() {
         resetWorkout();
       }
     },
-    [
-      startProgram,
-      startEcho,
-      addMonitorListener,
-      addRepListener,
-      startWorkout,
-      resetWorkout,
-      onMonitorSample,
-      handleRepNotification,
-    ],
+    [startProgram, startEcho, startWorkout, resetWorkout],
   );
 
   // Stop workout handler

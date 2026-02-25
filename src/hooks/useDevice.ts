@@ -15,19 +15,31 @@ export interface UseDeviceReturn {
   sendStopCommand: () => Promise<void>;
   startProgram: (params: DeviceProgramParams) => Promise<void>;
   startEcho: (params: DeviceEchoParams) => Promise<void>;
-  addMonitorListener: (listener: (sample: MonitorSample) => void) => void;
-  addRepListener: (listener: (data: Uint8Array) => void) => void;
+  setMonitorListener: (listener: (sample: MonitorSample) => void) => void;
+  setRepListener: (listener: (data: Uint8Array) => void) => void;
 }
 
 export function useDevice(): UseDeviceReturn {
   const [isConnected, setIsConnected] = useState(false);
   const deviceRef = useRef<VitruvianDevice | null>(null);
 
-  // Initialize device on mount
+  // Listener refs — the device dispatches through these so we never
+  // need to re-register on the device when the consumer's callback changes.
+  const monitorListenerRef = useRef<((sample: MonitorSample) => void) | null>(
+    null,
+  );
+  const repListenerRef = useRef<((data: Uint8Array) => void) | null>(null);
+
+  // Initialize device on mount and register stable delegates once
   useEffect(() => {
-    deviceRef.current = new VitruvianDevice();
+    const device = new VitruvianDevice();
+    deviceRef.current = device;
+
+    device.setMonitorListener((sample) => monitorListenerRef.current?.(sample));
+    device.setRepListener((data) => repListenerRef.current?.(data));
+
     return () => {
-      deviceRef.current?.disconnect();
+      device.disconnect();
     };
   }, []);
 
@@ -80,15 +92,16 @@ export function useDevice(): UseDeviceReturn {
     await deviceRef.current?.startEcho(params);
   }, []);
 
-  const addMonitorListener = useCallback(
+  // These just update refs — no device interaction, stable identity, safe to call any time
+  const setMonitorListener = useCallback(
     (listener: (sample: MonitorSample) => void) => {
-      deviceRef.current?.addMonitorListener(listener);
+      monitorListenerRef.current = listener;
     },
     [],
   );
 
-  const addRepListener = useCallback((listener: (data: Uint8Array) => void) => {
-    deviceRef.current?.addRepListener(listener);
+  const setRepListener = useCallback((listener: (data: Uint8Array) => void) => {
+    repListenerRef.current = listener;
   }, []);
 
   // Handle device disconnection events
@@ -110,7 +123,7 @@ export function useDevice(): UseDeviceReturn {
     sendStopCommand,
     startProgram,
     startEcho,
-    addMonitorListener,
-    addRepListener,
+    setMonitorListener,
+    setRepListener,
   };
 }
