@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { MonitorSample } from "../lib/chart";
 import { CurrentWorkout } from "../lib/types";
+import { playRepSound } from "../lib/sound";
 
 export interface UseRepCounterReturn {
   warmupReps: number;
@@ -127,6 +128,8 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
         recordBottomPosition(sample.posA, sample.posB);
 
         const totalReps = warmupReps + workingReps + 1;
+
+        playRepSound();
 
         if (totalReps <= warmupTarget) {
           setWarmupReps((prev) => {
