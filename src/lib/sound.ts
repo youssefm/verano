@@ -10,11 +10,10 @@ function getAudioContext(): AudioContext {
 }
 
 /**
- * Play a short beep to signal a completed rep.
- * @param frequency  Hz (default 880 – A5)
- * @param duration   seconds (default 0.08)
+ * Play a two-tone "ding" to signal a completed rep.
+ * A quick rising chirp (C6 → E6) that sounds more satisfying than a flat beep.
  */
-export function playRepSound(frequency = 880, duration = 0.08): void {
+export function playRepSound(): void {
   try {
     const ctx = getAudioContext();
 
@@ -23,20 +22,32 @@ export function playRepSound(frequency = 880, duration = 0.08): void {
       ctx.resume();
     }
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const t = ctx.currentTime;
 
-    osc.type = "sine";
-    osc.frequency.value = frequency;
+    // First tone – C6
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.value = 1047;
+    gain1.gain.setValueAtTime(0.25, t);
+    gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(t);
+    osc1.stop(t + 0.12);
 
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + duration);
+    // Second tone – E6, slightly delayed
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.value = 1319;
+    gain2.gain.setValueAtTime(0.001, t);
+    gain2.gain.setValueAtTime(0.25, t + 0.06);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(t + 0.06);
+    osc2.stop(t + 0.2);
   } catch {
     // Silently ignore – audio may be blocked by browser policy
   }
