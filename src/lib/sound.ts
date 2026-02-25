@@ -17,6 +17,12 @@ function getAudioContext(): AudioContext {
 export function playRepSound(frequency = 880, duration = 0.08): void {
   try {
     const ctx = getAudioContext();
+
+    // Resume context if suspended (browser autoplay policy)
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 

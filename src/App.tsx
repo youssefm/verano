@@ -12,6 +12,7 @@ import {
 import { useDevice, useWorkout, useChart } from "./hooks";
 import { ProgramModeNames, EchoLevelNames } from "./lib/modes";
 import { WorkoutConfig } from "./lib/types";
+import { playRepSound } from "./lib/sound";
 import "./styles.css";
 
 export function App() {
@@ -286,6 +287,23 @@ export function App() {
 
               {/* Stats Grid */}
               <StatsGrid liveStats={liveStats} />
+
+              {/* Test sound button */}
+              <button
+                onClick={() => playRepSound()}
+                style={{
+                  marginTop: "12px",
+                  padding: "8px 16px",
+                  background: "#667eea",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                🔊 Test Rep Sound
+              </button>
             </div>
 
             {/* Analytics card */}
