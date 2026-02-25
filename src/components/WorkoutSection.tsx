@@ -28,7 +28,8 @@ export function WorkoutSection({
   const [justLiftMode, setJustLiftMode] = useState(false);
 
   // Program fields
-  const [weight, setWeight] = useState(10);
+  const [weightStr, setWeightStr] = useState("10.0");
+  const weight = parseFloat(weightStr) || 0;
   const [progression, setProgression] = useState(0);
 
   // Echo fields
@@ -78,7 +79,9 @@ export function WorkoutSection({
           onChange={(e) => {
             const val = e.target.value;
             setMode(
-              val === "echo" ? WorkoutMode.ECHO : (parseInt(val) as WorkoutModeType),
+              val === "echo"
+                ? WorkoutMode.ECHO
+                : (parseInt(val) as WorkoutModeType),
             );
           }}
         >
@@ -133,11 +136,12 @@ export function WorkoutSection({
             <input
               type="number"
               id="weight"
-              value={weight}
-              onChange={(e) => setWeight(parseFloat(e.target.value))}
+              value={weightStr}
+              onChange={(e) => setWeightStr(e.target.value)}
+              onBlur={() => setWeightStr(weight.toFixed(1))}
               min={0}
               max={100}
-              step={0.5}
+              step={0.1}
             />
           </div>
 
