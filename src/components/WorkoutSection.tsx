@@ -178,9 +178,10 @@ export function WorkoutSection({
               type="number"
               id="progression"
               value={(config as ProgramWorkoutConfig).progression}
-              onChange={(e) =>
-                patchProgram({ progression: parseFloat(e.target.value) })
-              }
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (!isNaN(v)) patchProgram({ progression: v });
+              }}
               min={-3}
               max={3}
               step={0.1}
