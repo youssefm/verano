@@ -1,20 +1,11 @@
 // atoms.ts - Persisted Jotai atoms for workout settings
 
 import { atomWithStorage } from "jotai/utils";
-import { WorkoutConfig } from "./types";
+import { Exercise } from "./types";
 
-const defaultConfig: WorkoutConfig = {
-  type: "program",
-  mode: 0, // OLD_SCHOOL
-  weight: 10,
-  reps: 10,
-  progression: 0,
-  isJustLift: false,
-};
-
-export const workoutConfigAtom = atomWithStorage<WorkoutConfig>(
-  "verano:workoutConfig",
-  defaultConfig,
-  undefined, // default storage (localStorage)
+export const exercisesAtom = atomWithStorage<Exercise[]>(
+  "verano:exercises",
+  [],
+  undefined,
   { getOnInit: true },
 );

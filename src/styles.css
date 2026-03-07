@@ -139,6 +139,8 @@ input {
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s;
+  background: white;
+  color: #212529;
 }
 
 select:focus,
@@ -613,4 +615,221 @@ button.secondary {
 
 .overlay.show {
   display: block;
+}
+
+/* Exercise Management */
+.exercise-empty {
+  color: #868e96;
+  font-size: 0.9em;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exercise-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.exercise-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.exercise-name {
+  font-weight: 700;
+  font-size: 0.95em;
+  color: #212529;
+}
+
+.exercise-delete {
+  background: none;
+  border: 1px solid transparent;
+  color: #adb5bd;
+  cursor: pointer;
+  font-size: 0.8em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  width: auto;
+  margin: 0;
+  font-weight: 400;
+}
+
+.exercise-delete:hover {
+  background: #ffe3e3;
+  color: #c92a2a;
+  border-color: #ffa8a8;
+  transform: none;
+  box-shadow: none;
+}
+
+.exercise-delete.confirming {
+  background: #ffe3e3;
+  color: #c92a2a;
+  border-color: #ffa8a8;
+  font-weight: 600;
+}
+
+.exercise-mode {
+  font-size: 0.8em;
+  color: #868e96;
+  margin-bottom: 10px;
+}
+
+.exercise-adjusters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.adjuster-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adjuster-label {
+  font-size: 0.8em;
+  color: #495057;
+  font-weight: 500;
+  min-width: 50px;
+}
+
+.adjuster-controls {
+  display: flex;
+  align-items: center;
+}
+
+.adj-btn {
+  background: white;
+  border: 1.5px solid #dee2e6;
+  color: #495057;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.adj-btn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.adj-btn:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.adj-btn:hover:not(:disabled) {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+  transform: none;
+  box-shadow: none;
+}
+
+.adj-value {
+  background: white;
+  border-top: 1.5px solid #dee2e6;
+  border-bottom: 1.5px solid #dee2e6;
+  height: 34px;
+  min-width: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #212529;
+}
+
+.exercise-start-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  width: 100%;
+  margin: 0;
+  transition: all 0.2s;
+}
+
+.exercise-start-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(102, 126, 234, 0.4);
+}
+
+.exercise-start-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.new-exercise-btn {
+  background: white;
+  color: #667eea;
+  border: 2px dashed #c5cee8;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  width: 100%;
+  margin: 0;
+  transition: all 0.2s;
+}
+
+.new-exercise-btn:hover {
+  background: #f0f3ff;
+  border-color: #667eea;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Exercise creation form */
+.exercise-form {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.exercise-form-title {
+  font-weight: 700;
+  font-size: 0.95em;
+  color: #212529;
+  margin-bottom: 12px;
+}
+
+.exercise-form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.exercise-form-actions button {
+  margin: 0;
+}
+
+.exercise-form-actions .cancel-btn {
+  background: #6c757d;
 }

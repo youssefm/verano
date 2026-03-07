@@ -20,12 +20,12 @@ export const ProgramModeNames: Record<ProgramModeType, string> = {
 };
 
 // Unified workout modes (UI-facing)
-export const WorkoutMode = {
+const WorkoutMode = {
   ...ProgramMode,
   ECHO: "echo",
 } as const;
 
-export type WorkoutModeType = (typeof WorkoutMode)[keyof typeof WorkoutMode];
+type WorkoutModeType = (typeof WorkoutMode)[keyof typeof WorkoutMode];
 
 export const WorkoutModeNames: Record<WorkoutModeType, string> = {
   ...ProgramModeNames,
@@ -53,7 +53,7 @@ export const EchoLevelNames: Record<EchoLevelType, string> = {
 export function writeU16LE(
   buffer: ArrayBuffer,
   offset: number,
-  val: number
+  val: number,
 ): void {
   const view = new DataView(buffer);
   view.setUint16(offset, val, true); // true = little endian
@@ -62,7 +62,7 @@ export function writeU16LE(
 export function writeI16LE(
   buffer: ArrayBuffer,
   offset: number,
-  val: number
+  val: number,
 ): void {
   const view = new DataView(buffer);
   view.setInt16(offset, val, true);
@@ -71,7 +71,7 @@ export function writeI16LE(
 export function writeF32LE(
   buffer: ArrayBuffer,
   offset: number,
-  val: number
+  val: number,
 ): void {
   const view = new DataView(buffer);
   view.setFloat32(offset, val, true);
@@ -91,7 +91,7 @@ export interface EchoParams {
 // Get Echo parameters for a given level
 export function getEchoParams(
   level: EchoLevelType,
-  eccentricPct: number
+  eccentricPct: number,
 ): EchoParams {
   const params: EchoParams = {
     level: level,

@@ -1,0 +1,156 @@
+// components/ExerciseCard.tsx - Compact exercise card with quick adjust controls
+
+import React, { useState } from "react";
+import {
+  Exercise,
+  WorkoutConfig,
+  ProgramWorkoutConfig,
+  EchoWorkoutConfig,
+} from "../lib/types";
+import { ProgramModeNames, EchoLevelNames } from "../lib/modes";
+
+interface ExerciseCardProps {
+  exercise: Exercise;
+  onUpdate: (exercise: Exercise) => void;
+  onDelete: (id: string) => void;
+  onStart: (config: WorkoutConfig) => void;
+  isConnected: boolean;
+}
+
+export function ExerciseCard({
+  exercise,
+  onUpdate,
+  onDelete,
+  onStart,
+  isConnected,
+}: ExerciseCardProps) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { config } = exercise;
+  const isEcho = config.type === "echo";
+
+  const getModeDescription = () => {
+    if (isEcho) {
+      const c = config as EchoWorkoutConfig;
+      const parts = [
+        `Echo ${EchoLevelNames[c.level]}`,
+        `${c.eccentricPct}% ecc`,
+      ];
+      if (c.isJustLift) parts.push("Just Lift");
+      return parts.join(" · ");
+    } else {
+      const c = config as ProgramWorkoutConfig;
+      const parts = [ProgramModeNames[c.mode]];
+      if (c.progression !== 0) {
+        parts.push(`${c.progression > 0 ? "+" : ""}${c.progression} kg/rep`);
+      }
+      if (c.isJustLift) parts.push("Just Lift");
+      return parts.join(" · ");
+    }
+  };
+
+  const weight = isEcho ? null : (config as ProgramWorkoutConfig).weight;
+  const reps = isEcho
+    ? (config as EchoWorkoutConfig).targetReps
+    : (config as ProgramWorkoutConfig).reps;
+
+  const adjustWeight = (delta: number) => {
+    if (isEcho) return;
+    const c = config as ProgramWorkoutConfig;
+    const newWeight = Math.max(
+      0,
+      Math.min(100, +(c.weight + delta).toFixed(1)),
+    );
+    onUpdate({ ...exercise, config: { ...c, weight: newWeight } });
+  };
+
+  const adjustReps = (delta: number) => {
+    if (isEcho) {
+      const c = config as EchoWorkoutConfig;
+      const newReps = Math.max(0, Math.min(30, c.targetReps + delta));
+      onUpdate({ ...exercise, config: { ...c, targetReps: newReps } });
+    } else {
+      const c = config as ProgramWorkoutConfig;
+      const newReps = Math.max(1, Math.min(100, c.reps + delta));
+      onUpdate({ ...exercise, config: { ...c, reps: newReps } });
+    }
+  };
+
+  const handleStart = () => {
+    if (isEcho) {
+      const c = config as EchoWorkoutConfig;
+      onStart({ ...c, targetReps: c.isJustLift ? 0 : c.targetReps });
+    } else {
+      const c = config as ProgramWorkoutConfig;
+      onStart({ ...c, reps: c.isJustLift ? 0 : c.reps });
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (confirmDelete) {
+      onDelete(exercise.id);
+    } else {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
+    }
+  };
+
+  const showWeight = !isEcho;
+  const showReps = !config.isJustLift;
+
+  return (
+    <div className="exercise-card">
+      <div className="exercise-header">
+        <div className="exercise-name">{exercise.name}</div>
+        <button
+          className={`exercise-delete ${confirmDelete ? "confirming" : ""}`}
+          onClick={handleDeleteClick}
+          title={confirmDelete ? "Click again to confirm" : "Delete exercise"}
+        >
+          {confirmDelete ? "Confirm?" : "✕"}
+        </button>
+      </div>
+      <div className="exercise-mode">{getModeDescription()}</div>
+
+      {(showWeight || showReps) && (
+        <div className="exercise-adjusters">
+          {showWeight && (
+            <div className="adjuster-row">
+              <span className="adjuster-label">Weight</span>
+              <div className="adjuster-controls">
+                <button className="adj-btn" onClick={() => adjustWeight(-0.1)}>
+                  −
+                </button>
+                <span className="adj-value">{weight!.toFixed(1)} kg</span>
+                <button className="adj-btn" onClick={() => adjustWeight(0.1)}>
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+          {showReps && (
+            <div className="adjuster-row">
+              <span className="adjuster-label">Reps</span>
+              <div className="adjuster-controls">
+                <button className="adj-btn" onClick={() => adjustReps(-1)}>
+                  −
+                </button>
+                <span className="adj-value">{reps}</span>
+                <button className="adj-btn" onClick={() => adjustReps(1)}>
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        className="exercise-start-btn"
+        onClick={handleStart}
+        disabled={!isConnected}
+      >
+        ▶ Start
+      </button>
+    </div>
+  );
+}

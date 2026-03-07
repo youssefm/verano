@@ -26,13 +26,6 @@ export interface Workout {
   endTime?: Date;
 }
 
-export interface LogEntry {
-  id: number;
-  message: string;
-  type: "info" | "success" | "error";
-  timestamp: Date;
-}
-
 export interface ProgramWorkoutConfig {
   type: "program";
   mode: ProgramModeType;
@@ -58,6 +51,12 @@ export interface LiveStats {
   loadA: number;
   loadB: number;
   ticks: number;
+}
+
+export interface Exercise {
+  id: string;
+  name: string;
+  config: WorkoutConfig;
 }
 
 export interface RepRanges {

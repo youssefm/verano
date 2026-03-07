@@ -1,8 +1,12 @@
-// components/Sidebar.tsx - Sidebar component with mobile support
+// components/Sidebar.tsx - Sidebar component with exercise management
 
+import React, { useState } from "react";
+import { useAtom } from "jotai";
 import { ConnectionSection } from "./ConnectionSection";
-import { WorkoutSection } from "./WorkoutSection";
-import { WorkoutConfig } from "../lib/types";
+import { ExerciseCard } from "./ExerciseCard";
+import { ExerciseForm } from "./ExerciseForm";
+import { WorkoutConfig, Exercise } from "../lib/types";
+import { exercisesAtom } from "../lib/atoms";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,6 +25,29 @@ export function Sidebar({
   onDisconnect,
   onStartWorkout,
 }: SidebarProps) {
+  const [exercises, setExercises] = useAtom(exercisesAtom);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateExercise = (name: string, config: WorkoutConfig) => {
+    const newExercise: Exercise = {
+      id: crypto.randomUUID(),
+      name,
+      config,
+    };
+    setExercises((prev) => [...prev, newExercise]);
+    setIsCreating(false);
+  };
+
+  const handleUpdateExercise = (updated: Exercise) => {
+    setExercises((prev) =>
+      prev.map((ex) => (ex.id === updated.id ? updated : ex)),
+    );
+  };
+
+  const handleDeleteExercise = (id: string) => {
+    setExercises((prev) => prev.filter((ex) => ex.id !== id));
+  };
+
   return (
     <aside className={`sidebar ${isOpen ? "open" : ""}`}>
       <div className="sidebar-header">
@@ -36,10 +63,45 @@ export function Sidebar({
           onDisconnect={onDisconnect}
         />
 
-        <WorkoutSection
-          isConnected={isConnected}
-          onStartWorkout={onStartWorkout}
-        />
+        <div className="section">
+          <h2>Exercises</h2>
+
+          {exercises.length === 0 && !isCreating && (
+            <p className="exercise-empty">
+              No exercises yet. Create one to get started.
+            </p>
+          )}
+
+          {exercises.length > 0 && (
+            <div className="exercise-list">
+              {exercises.map((exercise) => (
+                <ExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  onUpdate={handleUpdateExercise}
+                  onDelete={handleDeleteExercise}
+                  onStart={onStartWorkout}
+                  isConnected={isConnected}
+                />
+              ))}
+            </div>
+          )}
+
+          {isCreating ? (
+            <ExerciseForm
+              onSave={handleCreateExercise}
+              onCancel={() => setIsCreating(false)}
+            />
+          ) : (
+            <button
+              className="new-exercise-btn"
+              onClick={() => setIsCreating(true)}
+              style={{ marginTop: exercises.length > 0 ? "12px" : "0" }}
+            >
+              + New Exercise
+            </button>
+          )}
+        </div>
       </div>
     </aside>
   );
