@@ -10,6 +10,7 @@ import { MonitorSample } from "../lib/chart";
 
 export interface UseDeviceReturn {
   isConnected: boolean;
+  isConnecting: boolean;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   sendStopCommand: () => Promise<void>;
@@ -21,6 +22,7 @@ export interface UseDeviceReturn {
 
 export function useDevice(): UseDeviceReturn {
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const deviceRef = useRef<VitruvianDevice | null>(null);
 
   // Listener refs — the device dispatches through these so we never
@@ -58,6 +60,7 @@ export function useDevice(): UseDeviceReturn {
       throw new Error("Web Bluetooth not supported");
     }
 
+    setIsConnecting(true);
     try {
       await deviceRef.current?.connect();
       setIsConnected(true);
@@ -66,6 +69,8 @@ export function useDevice(): UseDeviceReturn {
       console.error(`[ERROR] Connection failed: ${(error as Error).message}`);
       setIsConnected(false);
       throw error;
+    } finally {
+      setIsConnecting(false);
     }
   }, []);
 
@@ -113,6 +118,7 @@ export function useDevice(): UseDeviceReturn {
 
   return {
     isConnected,
+    isConnecting,
     connect,
     disconnect,
     sendStopCommand,

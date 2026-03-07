@@ -200,6 +200,88 @@ button.secondary {
   color: #2b8a3e;
 }
 
+/* Connection button */
+.connection-section {
+  padding-bottom: 20px;
+}
+
+.conn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.conn-btn .conn-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.conn-btn.disconnected {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.conn-btn.disconnected .conn-dot {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.conn-btn.connecting {
+  background: #fff3bf;
+  color: #e67700;
+  cursor: wait;
+  opacity: 1;
+}
+
+.conn-btn.connecting .conn-dot {
+  background: #e67700;
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.conn-btn.connected {
+  background: #f1f3f5;
+  color: #495057;
+  border: 2px solid #dee2e6;
+}
+
+.conn-btn.connected .conn-dot {
+  background: #40c057;
+  box-shadow: 0 0 6px rgba(64, 192, 87, 0.5);
+}
+
+.conn-btn.connected:hover:not(:disabled) {
+  background: #ffe3e3;
+  border-color: #ffa8a8;
+  color: #c92a2a;
+  transform: none;
+  box-shadow: none;
+}
+
+.conn-btn.connected:hover:not(:disabled) .conn-dot {
+  background: #fa5252;
+  box-shadow: 0 0 6px rgba(250, 82, 82, 0.5);
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
 /* Position bars */
 .position-bars {
   display: flex;

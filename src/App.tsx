@@ -21,6 +21,7 @@ export function App() {
   // Device hook for Bluetooth connection
   const {
     isConnected,
+    isConnecting,
     connect,
     disconnect,
     sendStopCommand,
@@ -247,6 +248,7 @@ export function App() {
         <Sidebar
           isOpen={sidebarOpen}
           isConnected={isConnected}
+          isConnecting={isConnecting}
           onConnect={connect}
           onDisconnect={disconnect}
           onStartWorkout={handleStartWorkout}

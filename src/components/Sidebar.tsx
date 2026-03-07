@@ -7,6 +7,7 @@ import { WorkoutConfig } from "../lib/types";
 interface SidebarProps {
   isOpen: boolean;
   isConnected: boolean;
+  isConnecting: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
   onStartWorkout: (config: WorkoutConfig) => void;
@@ -15,6 +16,7 @@ interface SidebarProps {
 export function Sidebar({
   isOpen,
   isConnected,
+  isConnecting,
   onConnect,
   onDisconnect,
   onStartWorkout,
@@ -29,6 +31,7 @@ export function Sidebar({
       <div className="sidebar-content">
         <ConnectionSection
           isConnected={isConnected}
+          isConnecting={isConnecting}
           onConnect={onConnect}
           onDisconnect={onDisconnect}
         />
