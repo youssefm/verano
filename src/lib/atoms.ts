@@ -15,4 +15,6 @@ const defaultConfig: WorkoutConfig = {
 export const workoutConfigAtom = atomWithStorage<WorkoutConfig>(
   "verano:workoutConfig",
   defaultConfig,
+  undefined, // default storage (localStorage)
+  { getOnInit: true },
 );
