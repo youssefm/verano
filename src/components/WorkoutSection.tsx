@@ -1,6 +1,7 @@
 // components/WorkoutSection.tsx - Unified workout controls
 
 import React, { useState } from "react";
+import { useAtom } from "jotai";
 import {
   WorkoutMode,
   WorkoutModeNames,
@@ -9,7 +10,12 @@ import {
   EchoLevelNames,
   EchoLevelType,
 } from "../lib/modes";
-import { WorkoutConfig } from "../lib/types";
+import {
+  WorkoutConfig,
+  ProgramWorkoutConfig,
+  EchoWorkoutConfig,
+} from "../lib/types";
+import { workoutConfigAtom } from "../lib/atoms";
 
 interface WorkoutSectionProps {
   isConnected: boolean;
@@ -20,41 +26,55 @@ export function WorkoutSection({
   isConnected,
   onStartWorkout,
 }: WorkoutSectionProps) {
-  const [mode, setMode] = useState<WorkoutModeType>(WorkoutMode.OLD_SCHOOL);
-  const isEcho = mode === WorkoutMode.ECHO;
+  const [config, setConfig] = useAtom(workoutConfigAtom);
+  const isEcho = config.type === "echo";
 
-  // Shared
-  const [reps, setReps] = useState(10);
-  const [justLiftMode, setJustLiftMode] = useState(false);
+  // weightStr is local UI state for the number input
+  const [weightStr, setWeightStr] = useState(() =>
+    isEcho ? "10.0" : (config as ProgramWorkoutConfig).weight.toFixed(1),
+  );
 
-  // Program fields
-  const [weightStr, setWeightStr] = useState("10.0");
-  const weight = parseFloat(weightStr) || 0;
-  const [progression, setProgression] = useState(0);
+  const handleModeChange = (val: string) => {
+    if (val === "echo") {
+      setConfig({
+        type: "echo",
+        level: EchoLevel.HARDER,
+        eccentricPct: 100,
+        targetReps: 10,
+        isJustLift: false,
+      });
+    } else {
+      const weight = parseFloat(weightStr) || 10;
+      setConfig({
+        type: "program",
+        mode: parseInt(val) as ProgramWorkoutConfig["mode"],
+        weight,
+        reps: 10,
+        progression: 0,
+        isJustLift: false,
+      });
+    }
+  };
 
-  // Echo fields
-  const [level, setLevel] = useState<EchoLevelType>(EchoLevel.HARDER);
-  const [eccentricPct, setEccentricPct] = useState(100);
+  const patchProgram = (update: Partial<ProgramWorkoutConfig>) =>
+    setConfig((prev) => ({ ...prev, ...update }) as WorkoutConfig);
 
-  const effectiveReps = justLiftMode ? 0 : reps;
+  const patchEcho = (update: Partial<EchoWorkoutConfig>) =>
+    setConfig((prev) => ({ ...prev, ...update }) as WorkoutConfig);
 
   const handleStart = () => {
     if (isEcho) {
+      const c = config as EchoWorkoutConfig;
       onStartWorkout({
-        type: "echo",
-        level,
-        eccentricPct,
-        targetReps: effectiveReps,
-        isJustLift: justLiftMode,
+        ...c,
+        targetReps: c.isJustLift ? 0 : c.targetReps,
       });
     } else {
+      const c = config as ProgramWorkoutConfig;
       onStartWorkout({
-        type: "program",
-        mode,
-        weight,
-        reps: effectiveReps,
-        progression,
-        isJustLift: justLiftMode,
+        ...c,
+        weight: parseFloat(weightStr) || 0,
+        reps: c.isJustLift ? 0 : c.reps,
       });
     }
   };
@@ -69,21 +89,14 @@ export function WorkoutSection({
 
       <div className="form-group">
         <label htmlFor="mode">
-          {justLiftMode && !isEcho
+          {config.isJustLift && !isEcho
             ? "Base Mode (for resistance profile):"
             : "Workout Mode:"}
         </label>
         <select
           id="mode"
-          value={mode}
-          onChange={(e) => {
-            const val = e.target.value;
-            setMode(
-              val === "echo"
-                ? WorkoutMode.ECHO
-                : (parseInt(val) as WorkoutModeType),
-            );
-          }}
+          value={isEcho ? "echo" : (config as ProgramWorkoutConfig).mode}
+          onChange={(e) => handleModeChange(e.target.value)}
         >
           {Object.entries(WorkoutModeNames).map(([value, name]) => (
             <option key={value} value={value}>
@@ -99,9 +112,11 @@ export function WorkoutSection({
             <label htmlFor="echoLevel">Echo Level:</label>
             <select
               id="echoLevel"
-              value={level + 1}
+              value={(config as EchoWorkoutConfig).level + 1}
               onChange={(e) =>
-                setLevel((parseInt(e.target.value) - 1) as EchoLevelType)
+                patchEcho({
+                  level: (parseInt(e.target.value) - 1) as EchoLevelType,
+                })
               }
             >
               <option value={1}>{EchoLevelNames[EchoLevel.HARD]}</option>
@@ -116,8 +131,10 @@ export function WorkoutSection({
             <input
               type="number"
               id="eccentric"
-              value={eccentricPct}
-              onChange={(e) => setEccentricPct(parseInt(e.target.value))}
+              value={(config as EchoWorkoutConfig).eccentricPct}
+              onChange={(e) =>
+                patchEcho({ eccentricPct: parseInt(e.target.value) })
+              }
               min={0}
               max={150}
               step={5}
@@ -137,8 +154,16 @@ export function WorkoutSection({
               type="number"
               id="weight"
               value={weightStr}
-              onChange={(e) => setWeightStr(e.target.value)}
-              onBlur={() => setWeightStr(weight.toFixed(1))}
+              onChange={(e) => {
+                setWeightStr(e.target.value);
+                const w = parseFloat(e.target.value);
+                if (!isNaN(w)) patchProgram({ weight: w });
+              }}
+              onBlur={() => {
+                const w = parseFloat(weightStr) || 0;
+                setWeightStr(w.toFixed(1));
+                patchProgram({ weight: w });
+              }}
               min={0}
               max={100}
               step={0.1}
@@ -152,8 +177,10 @@ export function WorkoutSection({
             <input
               type="number"
               id="progression"
-              value={progression}
-              onChange={(e) => setProgression(parseFloat(e.target.value))}
+              value={(config as ProgramWorkoutConfig).progression}
+              onChange={(e) =>
+                patchProgram({ progression: parseFloat(e.target.value) })
+              }
               min={-3}
               max={3}
               step={0.1}
@@ -176,12 +203,20 @@ export function WorkoutSection({
           <input
             type="number"
             id="reps"
-            value={reps}
-            onChange={(e) => setReps(parseInt(e.target.value))}
+            value={
+              isEcho
+                ? (config as EchoWorkoutConfig).targetReps
+                : (config as ProgramWorkoutConfig).reps
+            }
+            onChange={(e) => {
+              const v = parseInt(e.target.value);
+              if (isEcho) patchEcho({ targetReps: v });
+              else patchProgram({ reps: v });
+            }}
             min={isEcho ? 0 : 1}
             max={isEcho ? 30 : 100}
-            disabled={justLiftMode}
-            style={{ opacity: justLiftMode ? 0.5 : 1 }}
+            disabled={config.isJustLift}
+            style={{ opacity: config.isJustLift ? 0.5 : 1 }}
           />
         </div>
         <div style={{ alignSelf: "center" }}>
@@ -195,8 +230,12 @@ export function WorkoutSection({
           >
             <input
               type="checkbox"
-              checked={justLiftMode}
-              onChange={(e) => setJustLiftMode(e.target.checked)}
+              checked={config.isJustLift}
+              onChange={(e) =>
+                isEcho
+                  ? patchEcho({ isJustLift: e.target.checked })
+                  : patchProgram({ isJustLift: e.target.checked })
+              }
               style={{ width: "auto" }}
             />
             <span>Just Lift Mode</span>
