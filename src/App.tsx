@@ -1,6 +1,6 @@
 // App.tsx - Main application component
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Sidebar,
   PositionBars,
@@ -20,8 +20,8 @@ export function App() {
 
   // Set tracking (non-persistent, resets on refresh)
   const [exerciseSets, setExerciseSets] = useState<Record<string, number>>({});
-  const [activeSet, setActiveSet] = useState(1);
-  const activeExerciseIdRef = useRef<string | null>(null);
+  const [activeSet, setActiveSet] = useState(1);e
+  const [activeExerciseId, setActiveExerciseId] = useState<string | null>(null);
 
   // Device hook for Bluetooth connection
   const {
@@ -51,14 +51,15 @@ export function App() {
 
   // Advance to next set for the active exercise
   const advanceSet = useCallback(() => {
-    const exId = activeExerciseIdRef.current;
-    if (exId) {
-      setExerciseSets((prev) => {
-        const current = prev[exId] || 1;
-        return { ...prev, [exId]: current >= TOTAL_SETS ? 1 : current + 1 };
-      });
-      activeExerciseIdRef.current = null;
-    }
+    setActiveExerciseId((exId) => {
+      if (exId) {
+        setExerciseSets((prev) => {
+          const current = prev[exId] || 1;
+          return { ...prev, [exId]: current >= TOTAL_SETS ? 1 : current + 1 };
+        });
+      }
+      return null;
+    });
   }, []);
 
   // Workout hook for state management
@@ -194,12 +195,11 @@ export function App() {
 
       try {
         if (exerciseId) {
-          activeExerciseIdRef.current = exerciseId;
+          setActiveExerciseId(exerciseId);
           setActiveSet(currentSet);
         }
         startWorkout(modeName, weightKg, reps, isJustLift);
         await sendDevice();
-        setSidebarOpen(false);
       } catch (error) {
         console.error(
           `[ERROR] Failed to start workout: ${(error as Error).message}`,
@@ -213,6 +213,7 @@ export function App() {
   // Stop workout handler
   const handleStop = useCallback(async () => {
     // Manual stop — save workout but don't advance the set
+    setActiveExerciseId(null);
     completeWorkout();
     try {
       await sendStopCommand();
@@ -275,7 +276,9 @@ export function App() {
           onConnect={connect}
           onDisconnect={disconnect}
           onStartWorkout={handleStartWorkout}
+          onStopWorkout={handleStop}
           exerciseSets={exerciseSets}
+          activeExerciseId={activeExerciseId}
         />
 
         {/* Main content */}

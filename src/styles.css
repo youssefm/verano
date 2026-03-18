@@ -774,6 +774,14 @@ button.secondary {
   cursor: not-allowed;
 }
 
+.exercise-start-btn.active {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.exercise-start-btn.active:hover:not(:disabled) {
+  box-shadow: 0 3px 12px rgba(220, 53, 69, 0.4);
+}
+
 .new-exercise-btn {
   background: white;
   color: #667eea;

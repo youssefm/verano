@@ -13,18 +13,24 @@ import { TOTAL_SETS, getSetWeight } from "../lib/sets";
 interface ExerciseCardProps {
   exercise: Exercise;
   currentSet: number;
+  isActive: boolean;
+  hasActiveWorkout: boolean;
   onUpdate: (exercise: Exercise) => void;
   onDelete: (id: string) => void;
   onStart: (config: WorkoutConfig, exerciseId: string) => void;
+  onStop: () => void;
   isConnected: boolean;
 }
 
 export function ExerciseCard({
   exercise,
   currentSet,
+  isActive,
+  hasActiveWorkout,
   onUpdate,
   onDelete,
   onStart,
+  onStop,
   isConnected,
 }: ExerciseCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -134,11 +140,11 @@ export function ExerciseCard({
       )}
 
       <button
-        className="exercise-start-btn"
-        onClick={handleStart}
-        disabled={!isConnected}
+        className={`exercise-start-btn${isActive ? " active" : ""}`}
+        onClick={isActive ? onStop : handleStart}
+        disabled={!isConnected || (!isActive && hasActiveWorkout)}
       >
-        ▶ Start
+        {isActive ? "■ Stop" : "▶ Start"}
       </button>
     </div>
   );
