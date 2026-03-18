@@ -4,7 +4,6 @@ import React, { useState, useCallback, useEffect } from "react";
 import {
   Sidebar,
   PositionBars,
-  StatsGrid,
   RepCounters,
   LoadChart,
   WorkoutHistory,
@@ -281,9 +280,6 @@ export function App() {
                 hasActiveWorkout={currentWorkout !== null}
                 isConnected={isConnected}
               />
-
-              {/* Stats Grid */}
-              <StatsGrid liveStats={liveStats} />
             </div>
 
             {/* Analytics card */}

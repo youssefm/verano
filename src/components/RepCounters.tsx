@@ -1,4 +1,4 @@
-// components/RepCounters.tsx - Rep counter display
+// components/RepCounters.tsx - Unified rep counter display
 
 import React from "react";
 
@@ -17,67 +17,67 @@ export function RepCounters({
   targetReps,
   hasActiveWorkout,
 }: RepCountersProps) {
-  const warmupDisplay = hasActiveWorkout
-    ? `${warmupReps}/${warmupTarget}`
-    : "-/3";
-  const workingDisplay = hasActiveWorkout
-    ? targetReps > 0
-      ? `${workingReps}/${targetReps}`
-      : `${workingReps}`
-    : "-/-";
+  const isWarming = hasActiveWorkout && warmupReps < warmupTarget;
+  const isWorking = hasActiveWorkout && warmupReps >= warmupTarget;
+
+  let label: string;
+  let display: string;
+  let bg: string;
+  let labelColor: string;
+  let valueColor: string;
+
+  if (!hasActiveWorkout) {
+    label = "Reps";
+    display = "-/-";
+    bg = "#f1f3f5";
+    labelColor = "#868e96";
+    valueColor = "#495057";
+  } else if (isWarming) {
+    label = "Warmup";
+    display = `${warmupReps}/${warmupTarget}`;
+    bg = "#e7f5ff";
+    labelColor = "#1971c2";
+    valueColor = "#1864ab";
+  } else {
+    label = "Working";
+    display =
+      targetReps > 0 ? `${workingReps}/${targetReps}` : `${workingReps}`;
+    bg = "#d3f9d8";
+    labelColor = "#2f9e44";
+    valueColor = "#2b8a3e";
+  }
 
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "15px",
+        background: bg,
+        padding: "15px 30px",
+        borderRadius: "8px",
+        textAlign: "center",
         marginBottom: "20px",
+        transition: "background 0.3s ease",
       }}
     >
       <div
         style={{
-          background: "#e7f5ff",
-          padding: "15px",
-          borderRadius: "8px",
-          textAlign: "center",
+          fontSize: "0.9em",
+          color: labelColor,
+          marginBottom: "5px",
+          fontWeight: 600,
+          transition: "color 0.3s ease",
         }}
       >
-        <div
-          style={{
-            fontSize: "0.9em",
-            color: "#1971c2",
-            marginBottom: "5px",
-            fontWeight: 600,
-          }}
-        >
-          Warmup Reps
-        </div>
-        <div style={{ fontSize: "2em", fontWeight: 700, color: "#1864ab" }}>
-          {warmupDisplay}
-        </div>
+        {label}
       </div>
       <div
         style={{
-          background: "#d3f9d8",
-          padding: "15px",
-          borderRadius: "8px",
-          textAlign: "center",
+          fontSize: "2em",
+          fontWeight: 700,
+          color: valueColor,
+          transition: "color 0.3s ease",
         }}
       >
-        <div
-          style={{
-            fontSize: "0.9em",
-            color: "#2f9e44",
-            marginBottom: "5px",
-            fontWeight: 600,
-          }}
-        >
-          Working Reps
-        </div>
-        <div style={{ fontSize: "2em", fontWeight: 700, color: "#2b8a3e" }}>
-          {workingDisplay}
-        </div>
+        {display}
       </div>
     </div>
   );

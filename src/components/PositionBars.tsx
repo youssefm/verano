@@ -94,6 +94,10 @@ export function PositionBars({
   const offset = circumference - autoStopProgress * circumference;
   const timeLeft = Math.ceil((1 - autoStopProgress) * 5);
 
+  const totalLoad = liveStats.loadA + liveStats.loadB;
+
+  const formatLoad = (kg: number) => (isNaN(kg) ? "-" : kg.toFixed(1));
+
   return (
     <div className="position-bars">
       {/* Left Cable (B) */}
@@ -104,14 +108,19 @@ export function PositionBars({
           {renderRangeIndicators("B")}
         </div>
         <div className="bar-value">{liveStats.posB}</div>
+        <div className="bar-load">
+          {formatLoad(liveStats.loadB)}{" "}
+          <span className="bar-load-unit">kg</span>
+        </div>
       </div>
 
-      {/* Center: Auto-stop timer and Stop button */}
+      {/* Center: Auto-stop timer, Stop button, Total load */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          justifyContent: "flex-end",
           gap: "15px",
         }}
       >
@@ -174,6 +183,13 @@ export function PositionBars({
         >
           STOP
         </button>
+
+        <div className="bar-total-load">
+          <div className="bar-total-load-label">Total</div>
+          <div className="bar-total-load-value">
+            {formatLoad(totalLoad)} <span className="bar-load-unit">kg</span>
+          </div>
+        </div>
       </div>
 
       {/* Right Cable (A) */}
@@ -184,6 +200,10 @@ export function PositionBars({
           {renderRangeIndicators("A")}
         </div>
         <div className="bar-value">{liveStats.posA}</div>
+        <div className="bar-load">
+          {formatLoad(liveStats.loadA)}{" "}
+          <span className="bar-load-unit">kg</span>
+        </div>
       </div>
     </div>
   );
