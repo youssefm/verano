@@ -20,7 +20,7 @@ export function App() {
 
   // Set tracking (non-persistent, resets on refresh)
   const [exerciseSets, setExerciseSets] = useState<Record<string, number>>({});
-  const [activeSet, setActiveSet] = useState(1);e
+  const [activeSet, setActiveSet] = useState(1);
   const [activeExerciseId, setActiveExerciseId] = useState<string | null>(null);
 
   // Device hook for Bluetooth connection
@@ -306,7 +306,6 @@ export function App() {
                 maxPos={maxPos}
                 autoStopProgress={autoStopProgress}
                 isJustLiftMode={isJustLiftMode}
-                onStop={handleStop}
                 hasActiveWorkout={currentWorkout !== null}
                 isConnected={isConnected}
               />

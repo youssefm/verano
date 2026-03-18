@@ -9,7 +9,6 @@ interface PositionBarsProps {
   maxPos: number;
   autoStopProgress: number;
   isJustLiftMode: boolean;
-  onStop: () => void;
   hasActiveWorkout: boolean;
   isConnected: boolean;
 }
@@ -20,7 +19,6 @@ export function PositionBars({
   maxPos,
   autoStopProgress,
   isJustLiftMode,
-  onStop,
   hasActiveWorkout,
   isConnected,
 }: PositionBarsProps) {
@@ -79,21 +77,6 @@ export function PositionBars({
     );
   };
 
-  const stopButtonOpacity = !isConnected || !hasActiveWorkout ? 0.5 : 1;
-  const stopButtonTitle =
-    !isConnected && !hasActiveWorkout
-      ? "Device disconnected and no workout active"
-      : !isConnected
-        ? "Device disconnected"
-        : !hasActiveWorkout
-          ? "No workout active"
-          : "Stop the current workout";
-
-  // Calculate auto-stop circle progress
-  const circumference = 220;
-  const offset = circumference - autoStopProgress * circumference;
-  const timeLeft = Math.ceil((1 - autoStopProgress) * 5);
-
   const totalLoad = liveStats.loadA + liveStats.loadB;
 
   const formatLoad = (kg: number) => (isNaN(kg) ? "-" : kg.toFixed(1));
@@ -114,7 +97,7 @@ export function PositionBars({
         </div>
       </div>
 
-      {/* Center: Auto-stop timer, Stop button, Total load */}
+      {/* Center: Auto-stop timer, Total load */}
       <div
         style={{
           display: "flex",
@@ -151,7 +134,7 @@ export function PositionBars({
                 stroke="#ff6b6b"
                 strokeWidth="6"
                 strokeDasharray="220"
-                strokeDashoffset={offset}
+                strokeDashoffset={220 - autoStopProgress * 220}
                 style={{ transition: "stroke-dashoffset 0.1s linear" }}
               />
             </svg>
@@ -164,25 +147,12 @@ export function PositionBars({
                 pointerEvents: "none",
               }}
             >
-              {autoStopProgress > 0 ? `${timeLeft}s` : "Auto-Stop"}
+              {autoStopProgress > 0
+                ? `${Math.ceil((1 - autoStopProgress) * 5)}s`
+                : "Auto-Stop"}
             </div>
           </div>
         )}
-
-        <button
-          onClick={onStop}
-          style={{
-            background: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
-            padding: "15px 30px",
-            fontSize: "16px",
-            width: "auto",
-            margin: 0,
-            opacity: stopButtonOpacity,
-          }}
-          title={stopButtonTitle}
-        >
-          STOP
-        </button>
 
         <div className="bar-total-load">
           <div className="bar-total-load-label">Total</div>
