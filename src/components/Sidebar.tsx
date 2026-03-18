@@ -14,7 +14,8 @@ interface SidebarProps {
   isConnecting: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
-  onStartWorkout: (config: WorkoutConfig) => void;
+  onStartWorkout: (config: WorkoutConfig, exerciseId?: string) => void;
+  exerciseSets: Record<string, number>;
 }
 
 export function Sidebar({
@@ -24,6 +25,7 @@ export function Sidebar({
   onConnect,
   onDisconnect,
   onStartWorkout,
+  exerciseSets,
 }: SidebarProps) {
   const [exercises, setExercises] = useAtom(exercisesAtom);
   const [isCreating, setIsCreating] = useState(false);
@@ -78,6 +80,7 @@ export function Sidebar({
                 <ExerciseCard
                   key={exercise.id}
                   exercise={exercise}
+                  currentSet={exerciseSets[exercise.id] || 1}
                   onUpdate={handleUpdateExercise}
                   onDelete={handleDeleteExercise}
                   onStart={onStartWorkout}

@@ -8,6 +8,8 @@ interface RepCountersProps {
   warmupTarget: number;
   targetReps: number;
   hasActiveWorkout: boolean;
+  currentSet: number;
+  totalSets: number;
 }
 
 export function RepCounters({
@@ -16,6 +18,8 @@ export function RepCounters({
   warmupTarget,
   targetReps,
   hasActiveWorkout,
+  currentSet,
+  totalSets,
 }: RepCountersProps) {
   const isWarming = hasActiveWorkout && warmupReps < warmupTarget;
   const isWorking = hasActiveWorkout && warmupReps >= warmupTarget;
@@ -79,6 +83,18 @@ export function RepCounters({
       >
         {display}
       </div>
+      {hasActiveWorkout && (
+        <div
+          style={{
+            fontSize: "0.8em",
+            color: labelColor,
+            marginTop: "6px",
+            fontWeight: 500,
+          }}
+        >
+          Set {currentSet}/{totalSets}
+        </div>
+      )}
     </div>
   );
 }

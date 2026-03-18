@@ -1,6 +1,6 @@
 // App.tsx - Main application component
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   Sidebar,
   PositionBars,
@@ -11,11 +11,17 @@ import {
 import { useDevice, useWorkout, useChart } from "./hooks";
 import { ProgramModeNames, EchoLevelNames } from "./lib/modes";
 import { WorkoutConfig } from "./lib/types";
+import { TOTAL_SETS, getSetWeight } from "./lib/sets";
 import "./styles.css";
 
 export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTimeRange, setCurrentTimeRange] = useState<number | null>(30);
+
+  // Set tracking (non-persistent, resets on refresh)
+  const [exerciseSets, setExerciseSets] = useState<Record<string, number>>({});
+  const [activeSet, setActiveSet] = useState(1);
+  const activeExerciseIdRef = useRef<string | null>(null);
 
   // Device hook for Bluetooth connection
   const {
@@ -43,6 +49,18 @@ export function App() {
     }
   }, [sendStopCommand]);
 
+  // Advance to next set for the active exercise
+  const advanceSet = useCallback(() => {
+    const exId = activeExerciseIdRef.current;
+    if (exId) {
+      setExerciseSets((prev) => {
+        const current = prev[exId] || 1;
+        return { ...prev, [exId]: current >= TOTAL_SETS ? 1 : current + 1 };
+      });
+      activeExerciseIdRef.current = null;
+    }
+  }, []);
+
   // Workout hook for state management
   const {
     currentWorkout,
@@ -63,6 +81,7 @@ export function App() {
     handleRepNotification,
     viewWorkoutOnGraph,
   } = useWorkout(handleAutoStop, () => {
+    advanceSet();
     completeWorkout();
   });
 
@@ -88,7 +107,10 @@ export function App() {
 
   // Start workout handler
   const handleStartWorkout = useCallback(
-    async (config: WorkoutConfig) => {
+    async (config: WorkoutConfig, exerciseId?: string) => {
+      // Determine current set and effective weight
+      const currentSet = exerciseId ? exerciseSets[exerciseId] || 1 : 1;
+
       let modeName: string;
       let weightKg: number;
       let reps: number;
@@ -97,7 +119,7 @@ export function App() {
 
       if (config.type === "program") {
         const { mode, weight, reps: configReps, progression } = config;
-        const perCableKg = weight;
+        const perCableKg = getSetWeight(weight, currentSet);
         const effectiveKg = perCableKg + 10.0;
         isJustLift = config.isJustLift;
         reps = configReps;
@@ -171,6 +193,10 @@ export function App() {
       }
 
       try {
+        if (exerciseId) {
+          activeExerciseIdRef.current = exerciseId;
+          setActiveSet(currentSet);
+        }
         startWorkout(modeName, weightKg, reps, isJustLift);
         await sendDevice();
         setSidebarOpen(false);
@@ -181,7 +207,7 @@ export function App() {
         resetWorkout();
       }
     },
-    [startProgram, startEcho, startWorkout, resetWorkout],
+    [startProgram, startEcho, startWorkout, resetWorkout, exerciseSets],
   );
 
   // Stop workout handler
@@ -189,6 +215,7 @@ export function App() {
     // Complete the workout first (saves to history and resets state)
     // before sending the stop command, to avoid races where the device
     // fires a final notification that resets state before we save.
+    advanceSet();
     completeWorkout();
     try {
       await sendStopCommand();
@@ -197,7 +224,7 @@ export function App() {
         `[ERROR] Failed to stop workout: ${(error as Error).message}`,
       );
     }
-  }, [sendStopCommand, completeWorkout]);
+  }, [sendStopCommand, completeWorkout, advanceSet]);
 
   // Handle viewing workout on graph
   const handleViewGraph = useCallback(
@@ -251,6 +278,7 @@ export function App() {
           onConnect={connect}
           onDisconnect={disconnect}
           onStartWorkout={handleStartWorkout}
+          exerciseSets={exerciseSets}
         />
 
         {/* Main content */}
@@ -267,6 +295,8 @@ export function App() {
                 warmupTarget={warmupTarget}
                 targetReps={targetReps}
                 hasActiveWorkout={currentWorkout !== null}
+                currentSet={activeSet}
+                totalSets={TOTAL_SETS}
               />
 
               {/* Position Visualizer */}

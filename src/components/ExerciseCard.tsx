@@ -8,17 +8,20 @@ import {
   EchoWorkoutConfig,
 } from "../lib/types";
 import { ProgramModeNames, EchoLevelNames } from "../lib/modes";
+import { TOTAL_SETS, getSetWeight } from "../lib/sets";
 
 interface ExerciseCardProps {
   exercise: Exercise;
+  currentSet: number;
   onUpdate: (exercise: Exercise) => void;
   onDelete: (id: string) => void;
-  onStart: (config: WorkoutConfig) => void;
+  onStart: (config: WorkoutConfig, exerciseId: string) => void;
   isConnected: boolean;
 }
 
 export function ExerciseCard({
   exercise,
+  currentSet,
   onUpdate,
   onDelete,
   onStart,
@@ -62,13 +65,20 @@ export function ExerciseCard({
     onUpdate({ ...exercise, config: { ...c, weight: newWeight } });
   };
 
+  const effectiveWeight = isEcho
+    ? null
+    : getSetWeight((config as ProgramWorkoutConfig).weight, currentSet);
+
   const handleStart = () => {
     if (isEcho) {
       const c = config as EchoWorkoutConfig;
-      onStart({ ...c, targetReps: c.isJustLift ? 0 : c.targetReps });
+      onStart(
+        { ...c, targetReps: c.isJustLift ? 0 : c.targetReps },
+        exercise.id,
+      );
     } else {
       const c = config as ProgramWorkoutConfig;
-      onStart({ ...c, reps: c.isJustLift ? 0 : c.reps });
+      onStart({ ...c, reps: c.isJustLift ? 0 : c.reps }, exercise.id);
     }
   };
 
@@ -95,7 +105,16 @@ export function ExerciseCard({
           {confirmDelete ? "Confirm?" : "✕"}
         </button>
       </div>
-      <div className="exercise-mode">{getModeDescription()}</div>
+      <div className="exercise-mode">
+        {getModeDescription()}
+        {" · "}
+        <span style={{ color: "#868e96" }}>
+          Set {currentSet}/{TOTAL_SETS}
+          {!isEcho &&
+            currentSet > 1 &&
+            ` · ${effectiveWeight!.toFixed(1)} kg eff`}
+        </span>
+      </div>
 
       {showWeight && (
         <div className="exercise-adjusters">
