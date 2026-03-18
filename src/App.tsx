@@ -212,10 +212,7 @@ export function App() {
 
   // Stop workout handler
   const handleStop = useCallback(async () => {
-    // Complete the workout first (saves to history and resets state)
-    // before sending the stop command, to avoid races where the device
-    // fires a final notification that resets state before we save.
-    advanceSet();
+    // Manual stop — save workout but don't advance the set
     completeWorkout();
     try {
       await sendStopCommand();
@@ -224,7 +221,7 @@ export function App() {
         `[ERROR] Failed to stop workout: ${(error as Error).message}`,
       );
     }
-  }, [sendStopCommand, completeWorkout, advanceSet]);
+  }, [sendStopCommand, completeWorkout]);
 
   // Handle viewing workout on graph
   const handleViewGraph = useCallback(
