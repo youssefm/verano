@@ -35,11 +35,13 @@ export function ExerciseCard({
         `Echo ${EchoLevelNames[c.level]}`,
         `${c.eccentricPct}% ecc`,
       ];
+      if (!c.isJustLift) parts.push(`${c.targetReps} reps`);
       if (c.isJustLift) parts.push("Just Lift");
       return parts.join(" · ");
     } else {
       const c = config as ProgramWorkoutConfig;
       const parts = [ProgramModeNames[c.mode]];
+      if (!c.isJustLift) parts.push(`${c.reps} reps`);
       if (c.progression !== 0) {
         parts.push(`${c.progression > 0 ? "+" : ""}${c.progression} kg/rep`);
       }
@@ -49,9 +51,6 @@ export function ExerciseCard({
   };
 
   const weight = isEcho ? null : (config as ProgramWorkoutConfig).weight;
-  const reps = isEcho
-    ? (config as EchoWorkoutConfig).targetReps
-    : (config as ProgramWorkoutConfig).reps;
 
   const adjustWeight = (delta: number) => {
     if (isEcho) return;
@@ -61,18 +60,6 @@ export function ExerciseCard({
       Math.min(100, +(c.weight + delta).toFixed(1)),
     );
     onUpdate({ ...exercise, config: { ...c, weight: newWeight } });
-  };
-
-  const adjustReps = (delta: number) => {
-    if (isEcho) {
-      const c = config as EchoWorkoutConfig;
-      const newReps = Math.max(0, Math.min(30, c.targetReps + delta));
-      onUpdate({ ...exercise, config: { ...c, targetReps: newReps } });
-    } else {
-      const c = config as ProgramWorkoutConfig;
-      const newReps = Math.max(1, Math.min(100, c.reps + delta));
-      onUpdate({ ...exercise, config: { ...c, reps: newReps } });
-    }
   };
 
   const handleStart = () => {
@@ -95,7 +82,6 @@ export function ExerciseCard({
   };
 
   const showWeight = !isEcho;
-  const showReps = !config.isJustLift;
 
   return (
     <div className="exercise-card">
@@ -111,36 +97,20 @@ export function ExerciseCard({
       </div>
       <div className="exercise-mode">{getModeDescription()}</div>
 
-      {(showWeight || showReps) && (
+      {showWeight && (
         <div className="exercise-adjusters">
-          {showWeight && (
-            <div className="adjuster-row">
-              <span className="adjuster-label">Weight</span>
-              <div className="adjuster-controls">
-                <button className="adj-btn" onClick={() => adjustWeight(-0.1)}>
-                  −
-                </button>
-                <span className="adj-value">{weight!.toFixed(1)} kg</span>
-                <button className="adj-btn" onClick={() => adjustWeight(0.1)}>
-                  +
-                </button>
-              </div>
+          <div className="adjuster-row">
+            <span className="adjuster-label">Weight</span>
+            <div className="adjuster-controls">
+              <button className="adj-btn" onClick={() => adjustWeight(-0.1)}>
+                −
+              </button>
+              <span className="adj-value">{weight!.toFixed(1)} kg</span>
+              <button className="adj-btn" onClick={() => adjustWeight(0.1)}>
+                +
+              </button>
             </div>
-          )}
-          {showReps && (
-            <div className="adjuster-row">
-              <span className="adjuster-label">Reps</span>
-              <div className="adjuster-controls">
-                <button className="adj-btn" onClick={() => adjustReps(-1)}>
-                  −
-                </button>
-                <span className="adj-value">{reps}</span>
-                <button className="adj-btn" onClick={() => adjustReps(1)}>
-                  +
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
