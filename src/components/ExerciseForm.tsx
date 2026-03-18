@@ -1,6 +1,6 @@
 // components/ExerciseForm.tsx - Full config form for creating new exercises
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { WorkoutConfig } from "../lib/types";
 import { WorkoutConfigFields } from "./WorkoutConfigFields";
 

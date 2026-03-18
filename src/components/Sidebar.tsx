@@ -1,6 +1,6 @@
 // components/Sidebar.tsx - Sidebar component with exercise management
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useAtom } from "jotai";
 import { ConnectionSection } from "./ConnectionSection";
 import { ExerciseCard } from "./ExerciseCard";

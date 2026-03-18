@@ -1,6 +1,6 @@
 // App.tsx - Main application component
 
-import React, { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Sidebar,
   PositionBars,
@@ -306,8 +306,6 @@ export function App() {
                 maxPos={maxPos}
                 autoStopProgress={autoStopProgress}
                 isJustLiftMode={isJustLiftMode}
-                hasActiveWorkout={currentWorkout !== null}
-                isConnected={isConnected}
               />
             </div>
 

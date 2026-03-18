@@ -1,6 +1,6 @@
 // components/LoadChart.tsx - Chart component for load history
 
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 interface LoadChartProps {
   onTimeRangeChange: (seconds: number | null) => void;

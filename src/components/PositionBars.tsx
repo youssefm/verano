@@ -1,6 +1,5 @@
 // components/PositionBars.tsx - Cable position visualizer
 
-import React from "react";
 import { LiveStats, RepRanges } from "../lib/types";
 
 interface PositionBarsProps {
@@ -9,8 +8,6 @@ interface PositionBarsProps {
   maxPos: number;
   autoStopProgress: number;
   isJustLiftMode: boolean;
-  hasActiveWorkout: boolean;
-  isConnected: boolean;
 }
 
 export function PositionBars({
@@ -19,8 +16,6 @@ export function PositionBars({
   maxPos,
   autoStopProgress,
   isJustLiftMode,
-  hasActiveWorkout,
-  isConnected,
 }: PositionBarsProps) {
   const heightA = Math.min((liveStats.posA / maxPos) * 100, 100);
   const heightB = Math.min((liveStats.posB / maxPos) * 100, 100);

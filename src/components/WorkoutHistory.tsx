@@ -1,6 +1,5 @@
 // components/WorkoutHistory.tsx - Workout history display
 
-import React from "react";
 import { Workout } from "../lib/types";
 
 interface WorkoutHistoryProps {

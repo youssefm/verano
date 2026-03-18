@@ -1,6 +1,6 @@
 // components/ExerciseCard.tsx - Compact exercise card with quick adjust controls
 
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Exercise,
   WorkoutConfig,

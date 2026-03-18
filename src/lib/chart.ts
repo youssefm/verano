@@ -3,7 +3,7 @@
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
-export interface LoadHistoryPoint {
+interface LoadHistoryPoint {
   timestamp: Date;
   loadA: number;
   loadB: number;
@@ -21,13 +21,13 @@ export interface MonitorSample {
   raw?: Uint8Array;
 }
 
-export interface EventMarker {
+interface EventMarker {
   time: Date;
   label: string;
   color?: string;
 }
 
-export interface LoadUnitConfig {
+interface LoadUnitConfig {
   label: string;
   decimals: number;
   toDisplay: (value: number) => number;
@@ -369,27 +369,6 @@ export class ChartManager {
     this.updateChartData();
   }
 
-  setLoadUnit(config: LoadUnitConfig | null): void {
-    if (!config) {
-      return;
-    }
-
-    this.loadUnit = {
-      label: config.label || "kg",
-      decimals: typeof config.decimals === "number" ? config.decimals : 1,
-      toDisplay:
-        typeof config.toDisplay === "function"
-          ? config.toDisplay
-          : (value: number): number => value,
-    };
-
-    if (this.chart && this.chart.axes && this.chart.axes[1]) {
-      (this.chart.axes[1] as uPlot.Axis).label =
-        `Load (${this.loadUnit.label})`;
-      this.updateChartData();
-    }
-  }
-
   formatLoadValue(value: number | null): string {
     if (value == null || !isFinite(value)) {
       return "-";
@@ -525,28 +504,9 @@ export class ChartManager {
     );
   }
 
-  // Clear all data
-  clear(): void {
-    this.loadHistory = [];
-    this.update();
-  }
-
-  // Get current data point count
-  getDataCount(): number {
-    return this.loadHistory.length;
-  }
-
   // Set event markers for a workout
   setEventMarkers(markers: EventMarker[]): void {
     this.eventMarkers = markers;
-    if (this.chart) {
-      this.chart.redraw();
-    }
-  }
-
-  // Clear event markers
-  clearEventMarkers(): void {
-    this.eventMarkers = [];
     if (this.chart) {
       this.chart.redraw();
     }

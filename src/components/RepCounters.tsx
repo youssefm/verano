@@ -1,7 +1,5 @@
 // components/RepCounters.tsx - Unified rep counter display
 
-import React from "react";
-
 interface RepCountersProps {
   warmupReps: number;
   workingReps: number;

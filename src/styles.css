@@ -474,40 +474,6 @@ button.secondary {
   font-style: italic;
 }
 
-/* Stats (legacy - kept for reference) */
-
-/* Log */
-#log {
-  background: #1e1e1e;
-  color: #00ff00;
-  padding: 15px;
-  border-radius: 8px;
-  font-family: "Courier New", monospace;
-  font-size: 12px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.log-line {
-  margin: 2px 0;
-}
-
-.log-error {
-  color: #ff6b6b;
-}
-
-.log-success {
-  color: #51cf66;
-}
-
-.log-info {
-  color: #74c0fc;
-}
-
-.hidden {
-  display: none;
-}
-
 /* Workout history */
 .history-item {
   background: white;

@@ -1,6 +1,5 @@
 // components/WorkoutConfigFields.tsx - Shared form fields for workout configuration
 
-import React from "react";
 import {
   WorkoutModeNames,
   EchoLevel,
