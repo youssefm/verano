@@ -1,6 +1,6 @@
 // hooks/useWorkout.ts - Orchestrates workout lifecycle, composing sub-hooks
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { MonitorSample } from "../lib/chart";
 import { CurrentWorkout, Workout, LiveStats } from "../lib/types";
 import { useRepRanges } from "./useRepRanges";
@@ -70,21 +70,35 @@ export function useWorkout(
   const { autoStopProgress, checkAutoStop, resetAutoStop } =
     useAutoStop(onAutoStop);
 
+  // Stable refs for repRanges callbacks (defined after useRepCounter but
+  // called only at runtime, so forward-referencing is safe)
+  const recordTopRef = useRef<(posA: number, posB: number) => void>(() => {});
+  const recordBottomRef = useRef<(posA: number, posB: number) => void>(
+    () => {},
+  );
+  const stableRecordTop = useCallback(
+    (posA: number, posB: number) => recordTopRef.current(posA, posB),
+    [],
+  );
+  const stableRecordBottom = useCallback(
+    (posA: number, posB: number) => recordBottomRef.current(posA, posB),
+    [],
+  );
+
   const {
     warmupReps,
     workingReps,
     currentSampleRef,
     handleRepNotification,
     resetCounters,
+    setWorkoutActive,
   } = useRepCounter({
-    currentWorkout,
     warmupTarget,
     targetReps,
     isJustLiftMode,
     stopAtTop,
-    recordTopPosition: (...args) => repRangesHook.recordTopPosition(...args),
-    recordBottomPosition: (...args) =>
-      repRangesHook.recordBottomPosition(...args),
+    recordTopPosition: stableRecordTop,
+    recordBottomPosition: stableRecordBottom,
     setCurrentWorkout,
     onAutoStop,
     onWorkoutComplete,
@@ -92,6 +106,8 @@ export function useWorkout(
 
   const repRangesHook = useRepRanges(warmupReps, workingReps, warmupTarget);
   const { repRanges, resetRanges } = repRangesHook;
+  recordTopRef.current = repRangesHook.recordTopPosition;
+  recordBottomRef.current = repRangesHook.recordBottomPosition;
 
   // --- Monitor sample handler ---
 
@@ -139,11 +155,13 @@ export function useWorkout(
       resetCounters();
       resetRanges();
       resetAutoStop();
+      setWorkoutActive(true);
     },
-    [resetCounters, resetRanges, resetAutoStop],
+    [resetCounters, resetRanges, resetAutoStop, setWorkoutActive],
   );
 
   const resetWorkout = useCallback(() => {
+    setWorkoutActive(false);
     setCurrentWorkout(null);
     setTargetReps(0);
     setIsJustLiftMode(false);
@@ -151,7 +169,7 @@ export function useWorkout(
     resetCounters();
     resetRanges();
     resetAutoStop();
-  }, [resetCounters, resetRanges, resetAutoStop]);
+  }, [resetCounters, resetRanges, resetAutoStop, setWorkoutActive]);
 
   const completeWorkout = useCallback(() => {
     if (currentWorkout) {

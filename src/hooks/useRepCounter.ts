@@ -1,6 +1,6 @@
 // hooks/useRepCounter.ts - Parse rep notifications and count warmup/working reps
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { MonitorSample } from "../lib/chart";
 import { CurrentWorkout } from "../lib/types";
 import { playRepSound } from "../lib/sound";
@@ -11,10 +11,10 @@ export interface UseRepCounterReturn {
   currentSampleRef: React.MutableRefObject<MonitorSample | null>;
   handleRepNotification: (data: Uint8Array) => void;
   resetCounters: () => void;
+  setWorkoutActive: (active: boolean) => void;
 }
 
 interface RepCounterDeps {
-  currentWorkout: CurrentWorkout | null;
   warmupTarget: number;
   targetReps: number;
   isJustLiftMode: boolean;
@@ -30,7 +30,6 @@ interface RepCounterDeps {
 
 export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
   const {
-    currentWorkout,
     warmupTarget,
     targetReps,
     isJustLiftMode,
@@ -48,6 +47,28 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
   const lastTopCounter = useRef<number | undefined>(undefined);
   const lastRepCounter = useRef<number | undefined>(undefined);
   const currentSampleRef = useRef<MonitorSample | null>(null);
+
+  // Ref for synchronous total-rep tracking (avoids stale closure in branching)
+  const totalRepsRef = useRef(0);
+  // Ref to track workout active state (avoids stale currentWorkout closure)
+  const workoutActiveRef = useRef(false);
+
+  const setWorkoutActive = useCallback((active: boolean) => {
+    workoutActiveRef.current = active;
+  }, []);
+
+  // Auto-complete when target reached (moved out of state updater)
+  useEffect(() => {
+    if (
+      !stopAtTop &&
+      !isJustLiftMode &&
+      targetReps > 0 &&
+      workingReps >= targetReps
+    ) {
+      console.log("[SUCCESS] Target reps reached! Auto-completing workout...");
+      onWorkoutComplete();
+    }
+  }, [workingReps, stopAtTop, isJustLiftMode, targetReps, onWorkoutComplete]);
 
   const handleRepNotification = useCallback(
     (data: Uint8Array) => {
@@ -72,7 +93,7 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
         }, ${sample?.posB || "?"}]`,
       );
 
-      if (!sample || !currentWorkout) return;
+      if (!sample || !workoutActiveRef.current) return;
 
       // Track top of range
       if (lastTopCounter.current === undefined) {
@@ -93,11 +114,12 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
           lastTopCounter.current = topCounter;
 
           // Check if we should complete at top of final rep
+          const currentWorkingReps = totalRepsRef.current - warmupTarget;
           if (
             stopAtTop &&
             !isJustLiftMode &&
             targetReps > 0 &&
-            workingReps === targetReps - 1
+            currentWorkingReps === targetReps - 1
           ) {
             console.log(
               "[SUCCESS] Reached top of final rep! Auto-completing workout...",
@@ -127,7 +149,9 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
         );
         recordBottomPosition(sample.posA, sample.posB);
 
-        const totalReps = warmupReps + workingReps + 1;
+        // Use ref for atomic branching — immune to stale closures
+        totalRepsRef.current += 1;
+        const totalReps = totalRepsRef.current;
 
         playRepSound();
 
@@ -156,19 +180,6 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
             } else {
               console.log(`[SUCCESS] Working rep ${newCount} complete`);
             }
-
-            // Auto-complete when target reached (not for Just Lift, not for stopAtTop)
-            if (
-              !stopAtTop &&
-              !isJustLiftMode &&
-              targetReps > 0 &&
-              newCount >= targetReps
-            ) {
-              console.log(
-                "[SUCCESS] Target reps reached! Auto-completing workout...",
-              );
-              onWorkoutComplete();
-            }
             return newCount;
           });
         }
@@ -177,9 +188,6 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
       lastRepCounter.current = completeCounter;
     },
     [
-      currentWorkout,
-      warmupReps,
-      workingReps,
       warmupTarget,
       targetReps,
       isJustLiftMode,
@@ -195,9 +203,11 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
   const resetCounters = useCallback(() => {
     setWarmupReps(0);
     setWorkingReps(0);
+    totalRepsRef.current = 0;
     lastTopCounter.current = undefined;
     lastRepCounter.current = undefined;
-    currentSampleRef.current = null;
+    // Don't null currentSampleRef — it should always reflect the latest position
+    // so rep notifications arriving right after start aren't silently dropped
   }, []);
 
   return {
@@ -206,5 +216,6 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
     currentSampleRef,
     handleRepNotification,
     resetCounters,
+    setWorkoutActive,
   };
 }
