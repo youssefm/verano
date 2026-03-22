@@ -37,7 +37,6 @@ const NOTIFY_CHAR_UUIDS = [
   "ef0e485a-8749-4314-b1be-01e57cd1712e",
 ];
 
-export type PropertyListener = (data: Uint8Array) => void;
 export type MonitorListener = (sample: MonitorSample) => void;
 export type RepListener = (data: Uint8Array) => void;
 
@@ -66,9 +65,7 @@ export class VitruvianDevice {
   propertyChar: BluetoothRemoteGATTCharacteristic | null;
   repNotifyChar: BluetoothRemoteGATTCharacteristic | null;
   isConnected: boolean;
-  propertyInterval: ReturnType<typeof setInterval> | null;
   monitorInterval: ReturnType<typeof setInterval> | null;
-  propertyListeners: PropertyListener[];
   repListeners: RepListener[];
   monitorListeners: MonitorListener[];
   lastGoodPosA: number;
@@ -84,9 +81,7 @@ export class VitruvianDevice {
     this.propertyChar = null;
     this.repNotifyChar = null;
     this.isConnected = false;
-    this.propertyInterval = null;
     this.monitorInterval = null;
-    this.propertyListeners = [];
     this.repListeners = [];
     this.monitorListeners = [];
     this.lastGoodPosA = 0;
@@ -144,6 +139,20 @@ export class VitruvianDevice {
       this.gattBusy = false;
       // Process next operation in queue
       this.processGattQueue();
+    }
+  }
+
+  // Flush all pending GATT operations (rejects them so callers don't hang)
+  flushGattQueue(): void {
+    const count = this.gattQueue.length;
+    if (count > 0) {
+      console.log(
+        `[DEVICE-DEBUG] Flushing ${count} pending GATT operations from queue`,
+      );
+      for (const item of this.gattQueue) {
+        item.reject(new Error("GATT queue flushed"));
+      }
+      this.gattQueue = [];
     }
   }
 
@@ -396,8 +405,7 @@ export class VitruvianDevice {
     await this.writeWithResponse("Program params", frame);
     this.log("Program started successfully!", "success");
 
-    // Start property and monitor polling
-    this.startPropertyPolling();
+    // Start monitor polling
     this.startMonitorPolling();
   }
 
@@ -420,48 +428,11 @@ export class VitruvianDevice {
     await this.writeWithResponse("Echo control", frame);
     this.log("Echo mode started successfully!", "success");
 
-    // Start property and monitor polling
-    this.startPropertyPolling();
+    // Start monitor polling
     this.startMonitorPolling();
   }
 
-  // Start property polling (every 500ms) - reads 0x003f for unknown properties
-  startPropertyPolling(): void {
-    if (this.propertyInterval) {
-      this.log("Property polling already running", "info");
-      return;
-    }
-
-    if (!this.propertyChar) {
-      this.log("Property characteristic not available", "error");
-      return;
-    }
-
-    this.log("Started property polling (0x003f) every 0.5s", "success");
-
-    this.propertyInterval = setInterval(async () => {
-      try {
-        const value = await this.queueGattOperation(() =>
-          this.propertyChar!.readValue(),
-        );
-        const data = new Uint8Array((value as DataView).buffer);
-        this.dispatchProperty(data);
-      } catch (error) {
-        // Don't spam errors, just silently continue
-      }
-    }, 500);
-  }
-
-  // Stop property polling
-  stopPropertyPolling(): void {
-    if (this.propertyInterval) {
-      clearInterval(this.propertyInterval);
-      this.propertyInterval = null;
-      this.log("Property polling stopped", "info");
-    }
-  }
-
-  // Start monitor polling (every 100ms) - reads 0x0039 for position/load data
+  // Start monitor polling (every 50ms) - reads 0x0039 for position/load data
   startMonitorPolling(): void {
     if (this.monitorInterval) {
       this.log("Monitor polling already running", "info");
@@ -474,7 +445,7 @@ export class VitruvianDevice {
     }
 
     this.log(
-      "Started monitor polling (0x0039) every 100ms for live stats",
+      "Started monitor polling (0x0039) every 50ms for live stats",
       "success",
     );
 
@@ -489,7 +460,7 @@ export class VitruvianDevice {
       } catch (error) {
         // Don't spam errors, just silently continue
       }
-    }, 100);
+    }, 50);
   }
 
   // Stop monitor polling
@@ -499,6 +470,12 @@ export class VitruvianDevice {
       this.monitorInterval = null;
       this.log("Monitor polling stopped", "info");
     }
+  }
+
+  // Stop all polling and flush queued operations so writes go through immediately
+  stopPollingAndFlush(): void {
+    this.stopMonitorPolling();
+    this.flushGattQueue();
   }
 
   // Parse monitor data (0x0039)
@@ -554,11 +531,6 @@ export class VitruvianDevice {
     return sample;
   }
 
-  // Add listener for property data
-  addPropertyListener(listener: PropertyListener): void {
-    this.propertyListeners.push(listener);
-  }
-
   // Add listener for monitor data
   addMonitorListener(listener: MonitorListener): void {
     this.monitorListeners.push(listener);
@@ -577,17 +549,6 @@ export class VitruvianDevice {
   // Set a single rep listener (replaces any previous)
   setRepListener(listener: RepListener): void {
     this.repListeners = [listener];
-  }
-
-  // Dispatch property data to listeners
-  dispatchProperty(data: Uint8Array): void {
-    for (const listener of this.propertyListeners) {
-      try {
-        listener(data);
-      } catch (error) {
-        console.error("Property listener error:", error);
-      }
-    }
   }
 
   // Dispatch monitor data to listeners
@@ -620,7 +581,6 @@ export class VitruvianDevice {
   // Handle disconnection
   handleDisconnect(): void {
     this.isConnected = false;
-    this.stopPropertyPolling();
     this.stopMonitorPolling();
     this.rxChar = null;
     this.monitorChar = null;
@@ -631,7 +591,6 @@ export class VitruvianDevice {
   // Disconnect from device
   async disconnect(): Promise<void> {
     if (this.device && this.device.gatt?.connected) {
-      this.stopPropertyPolling();
       this.stopMonitorPolling();
       await this.device.gatt.disconnect();
       this.log("Disconnected from device", "info");

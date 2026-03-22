@@ -30,6 +30,7 @@ export function App() {
     connect,
     disconnect,
     sendStopCommand,
+    stopPolling,
     startProgram,
     startEcho,
     setMonitorListener,
@@ -83,8 +84,9 @@ export function App() {
     viewWorkoutOnGraph,
   } = useWorkout(handleAutoStop, () => {
     console.log(
-      `[APP-DEBUG] onWorkoutComplete callback fired (advanceSet + completeWorkout)`,
+      `[APP-DEBUG] onWorkoutComplete callback fired (stopPolling + advanceSet + completeWorkout)`,
     );
+    stopPolling();
     advanceSet();
     completeWorkout();
   });
@@ -218,6 +220,7 @@ export function App() {
     // Manual stop — save workout but don't advance the set
     console.log(`[APP-DEBUG] handleStop (manual stop) called`);
     setActiveExerciseId(null);
+    stopPolling();
     completeWorkout();
     try {
       await sendStopCommand();
@@ -226,7 +229,7 @@ export function App() {
         `[ERROR] Failed to stop workout: ${(error as Error).message}`,
       );
     }
-  }, [sendStopCommand, completeWorkout]);
+  }, [sendStopCommand, stopPolling, completeWorkout]);
 
   // Handle viewing workout on graph
   const handleViewGraph = useCallback(
