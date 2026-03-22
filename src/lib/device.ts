@@ -65,7 +65,7 @@ export class VitruvianDevice {
   propertyChar: BluetoothRemoteGATTCharacteristic | null;
   repNotifyChar: BluetoothRemoteGATTCharacteristic | null;
   isConnected: boolean;
-  monitorInterval: ReturnType<typeof setInterval> | null;
+  monitorPollingActive: boolean;
   repListeners: RepListener[];
   monitorListeners: MonitorListener[];
   lastGoodPosA: number;
@@ -81,7 +81,7 @@ export class VitruvianDevice {
     this.propertyChar = null;
     this.repNotifyChar = null;
     this.isConnected = false;
-    this.monitorInterval = null;
+    this.monitorPollingActive = false;
     this.repListeners = [];
     this.monitorListeners = [];
     this.lastGoodPosA = 0;
@@ -432,9 +432,9 @@ export class VitruvianDevice {
     this.startMonitorPolling();
   }
 
-  // Start monitor polling (every 50ms) - reads 0x0039 for position/load data
+  // Start monitor polling - reads 0x0039 as fast as BLE allows
   startMonitorPolling(): void {
-    if (this.monitorInterval) {
+    if (this.monitorPollingActive) {
       this.log("Monitor polling already running", "info");
       return;
     }
@@ -444,30 +444,30 @@ export class VitruvianDevice {
       return;
     }
 
-    this.log(
-      "Started monitor polling (0x0039) every 50ms for live stats",
-      "success",
-    );
+    this.monitorPollingActive = true;
+    this.log("Started monitor polling (0x0039) for live stats", "success");
 
-    this.monitorInterval = setInterval(async () => {
-      try {
-        const value = await this.queueGattOperation(() =>
-          this.monitorChar!.readValue(),
-        );
-        const data = new Uint8Array((value as DataView).buffer);
-        const sample = this.parseMonitorData(data);
-        this.dispatchMonitor(sample);
-      } catch (error) {
-        // Don't spam errors, just silently continue
+    const poll = async () => {
+      while (this.monitorPollingActive) {
+        try {
+          const value = await this.queueGattOperation(() =>
+            this.monitorChar!.readValue(),
+          );
+          const data = new Uint8Array((value as DataView).buffer);
+          const sample = this.parseMonitorData(data);
+          this.dispatchMonitor(sample);
+        } catch (error) {
+          // GATT queue flushed or read failed — if still active, keep going
+        }
       }
-    }, 50);
+    };
+    poll();
   }
 
   // Stop monitor polling
   stopMonitorPolling(): void {
-    if (this.monitorInterval) {
-      clearInterval(this.monitorInterval);
-      this.monitorInterval = null;
+    if (this.monitorPollingActive) {
+      this.monitorPollingActive = false;
       this.log("Monitor polling stopped", "info");
     }
   }
