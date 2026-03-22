@@ -2,6 +2,7 @@
 
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
+import { MonitorSample } from "./types";
 
 interface LoadHistoryPoint {
   timestamp: Date;
@@ -11,15 +12,7 @@ interface LoadHistoryPoint {
   posB: number;
 }
 
-export interface MonitorSample {
-  timestamp: Date;
-  ticks: number;
-  posA: number;
-  posB: number;
-  loadA: number;
-  loadB: number;
-  raw?: Uint8Array;
-}
+export type { MonitorSample };
 
 interface EventMarker {
   time: Date;

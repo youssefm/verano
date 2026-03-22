@@ -1,7 +1,7 @@
 // hooks/useAutoStop.ts - Auto-stop timer when user stays at bottom of range
 
 import { useState, useCallback, useRef } from "react";
-import { MonitorSample } from "../lib/chart";
+import { MonitorSample } from "../lib/types";
 import { RepRanges } from "../lib/types";
 
 const AUTO_STOP_DURATION = 5000; // 5 seconds

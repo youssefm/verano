@@ -15,10 +15,9 @@ import {
   ProgramParams,
   EchoControlParams,
 } from "./protocol.js";
-import { MonitorSample } from "./chart.js";
+import { MonitorSample } from "./types.js";
 
 const GATT_SERVICE_UUID = "00001801-0000-1000-8000-00805f9b34fb";
-const SERVICE_CHANGED_CHAR_UUID = "00002a05-0000-1000-8000-00805f9b34fb";
 
 const NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_RX_CHAR_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
@@ -139,20 +138,6 @@ export class VitruvianDevice {
       this.gattBusy = false;
       // Process next operation in queue
       this.processGattQueue();
-    }
-  }
-
-  // Flush all pending GATT operations (rejects them so callers don't hang)
-  flushGattQueue(): void {
-    const count = this.gattQueue.length;
-    if (count > 0) {
-      console.log(
-        `[DEVICE-DEBUG] Flushing ${count} pending GATT operations from queue`,
-      );
-      for (const item of this.gattQueue) {
-        item.reject(new Error("GATT queue flushed"));
-      }
-      this.gattQueue = [];
     }
   }
 
@@ -470,12 +455,6 @@ export class VitruvianDevice {
       this.monitorPollingActive = false;
       this.log("Monitor polling stopped", "info");
     }
-  }
-
-  // Stop all polling and flush queued operations so writes go through immediately
-  stopPollingAndFlush(): void {
-    this.stopMonitorPolling();
-    this.flushGattQueue();
   }
 
   // Parse monitor data (0x0039)

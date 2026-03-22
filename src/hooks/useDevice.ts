@@ -6,7 +6,7 @@ import {
   DeviceProgramParams,
   DeviceEchoParams,
 } from "../lib/device";
-import { MonitorSample } from "../lib/chart";
+import { MonitorSample } from "../lib/types";
 
 export interface UseDeviceReturn {
   isConnected: boolean;
@@ -14,7 +14,6 @@ export interface UseDeviceReturn {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   sendStopCommand: () => Promise<void>;
-  stopPolling: () => void;
   startProgram: (params: DeviceProgramParams) => Promise<void>;
   startEcho: (params: DeviceEchoParams) => Promise<void>;
   setMonitorListener: (listener: (sample: MonitorSample) => void) => void;
@@ -97,13 +96,6 @@ export function useDevice(): UseDeviceReturn {
     }
   }, []);
 
-  const stopPolling = useCallback(() => {
-    console.log(
-      "[DEVICE-DEBUG] stopPolling called — stopping intervals + flushing GATT queue",
-    );
-    deviceRef.current?.stopPollingAndFlush();
-  }, []);
-
   const startProgram = useCallback(async (params: DeviceProgramParams) => {
     await deviceRef.current?.startProgram(params);
   }, []);
@@ -130,7 +122,6 @@ export function useDevice(): UseDeviceReturn {
     connect,
     disconnect,
     sendStopCommand,
-    stopPolling,
     startProgram,
     startEcho,
     setMonitorListener,

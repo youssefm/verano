@@ -1,7 +1,7 @@
 // hooks/useWorkout.ts - Orchestrates workout lifecycle, composing sub-hooks
 
 import { useState, useCallback, useRef } from "react";
-import { MonitorSample } from "../lib/chart";
+import { MonitorSample } from "../lib/types";
 import { CurrentWorkout, Workout, LiveStats } from "../lib/types";
 import { useRepRanges } from "./useRepRanges";
 import { useAutoStop } from "./useAutoStop";

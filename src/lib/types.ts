@@ -69,3 +69,13 @@ export interface RepRanges {
   minRepPosBRange: PositionRange | null;
   maxRepPosBRange: PositionRange | null;
 }
+
+export interface MonitorSample {
+  timestamp: Date;
+  ticks: number;
+  posA: number;
+  posB: number;
+  loadA: number;
+  loadB: number;
+  raw?: Uint8Array;
+}

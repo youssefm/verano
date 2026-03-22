@@ -1,7 +1,7 @@
 // hooks/useRepCounter.ts - Parse rep notifications and count warmup/working reps
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { MonitorSample } from "../lib/chart";
+import { MonitorSample } from "../lib/types";
 import { CurrentWorkout } from "../lib/types";
 import { playRepSound } from "../lib/sound";
 
