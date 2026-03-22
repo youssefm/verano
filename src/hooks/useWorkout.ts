@@ -141,6 +141,10 @@ export function useWorkout(
 
   const startWorkout = useCallback(
     (mode: string, weightKg: number, reps: number, isJustLift: boolean) => {
+      console.log(
+        `[WORKOUT-DEBUG] startWorkout called: mode="${mode}", weight=${weightKg}, ` +
+          `reps=${reps}, isJustLift=${isJustLift}, warmupTarget=${warmupTarget}`,
+      );
       setCurrentWorkout({
         mode,
         weightKg,
@@ -152,15 +156,22 @@ export function useWorkout(
       setTargetReps(reps);
       setIsJustLiftMode(isJustLift);
 
+      console.log(
+        `[WORKOUT-DEBUG] About to resetCounters, resetRanges, resetAutoStop, then setWorkoutActive(true)`,
+      );
       resetCounters();
       resetRanges();
       resetAutoStop();
       setWorkoutActive(true);
+      console.log(
+        `[WORKOUT-DEBUG] startWorkout complete. Workout is now active.`,
+      );
     },
     [resetCounters, resetRanges, resetAutoStop, setWorkoutActive],
   );
 
   const resetWorkout = useCallback(() => {
+    console.log(`[WORKOUT-DEBUG] resetWorkout called`);
     setWorkoutActive(false);
     setCurrentWorkout(null);
     setTargetReps(0);
@@ -169,11 +180,24 @@ export function useWorkout(
     resetCounters();
     resetRanges();
     resetAutoStop();
+    console.log(
+      `[WORKOUT-DEBUG] resetWorkout complete. Workout is now inactive.`,
+    );
   }, [resetCounters, resetRanges, resetAutoStop, setWorkoutActive]);
 
   const completeWorkout = useCallback(() => {
+    console.log(
+      `[WORKOUT-DEBUG] completeWorkout called. currentWorkout=${!!currentWorkout}, ` +
+        `workingReps=${workingReps}`,
+    );
     if (currentWorkout) {
       const endTime = new Date();
+      const duration = endTime.getTime() - currentWorkout.startTime.getTime();
+      console.log(
+        `[WORKOUT-DEBUG] Saving workout: mode="${currentWorkout.mode}", ` +
+          `weight=${currentWorkout.weightKg}, reps=${workingReps}, ` +
+          `duration=${(duration / 1000).toFixed(1)}s`,
+      );
       addWorkout({
         mode: currentWorkout.mode,
         weightKg: currentWorkout.weightKg,

@@ -603,6 +603,11 @@ export class VitruvianDevice {
 
   // Dispatch rep notification to listeners
   dispatchRepNotification(data: Uint8Array): void {
+    if (this.repListeners.length === 0) {
+      console.warn(
+        `[DEVICE-DEBUG] Rep notification received but NO listeners registered`,
+      );
+    }
     for (const listener of this.repListeners) {
       try {
         listener(data);

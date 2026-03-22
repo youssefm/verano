@@ -82,6 +82,9 @@ export function App() {
     handleRepNotification,
     viewWorkoutOnGraph,
   } = useWorkout(handleAutoStop, () => {
+    console.log(
+      `[APP-DEBUG] onWorkoutComplete callback fired (advanceSet + completeWorkout)`,
+    );
     advanceSet();
     completeWorkout();
   });
@@ -213,6 +216,7 @@ export function App() {
   // Stop workout handler
   const handleStop = useCallback(async () => {
     // Manual stop — save workout but don't advance the set
+    console.log(`[APP-DEBUG] handleStop (manual stop) called`);
     setActiveExerciseId(null);
     completeWorkout();
     try {

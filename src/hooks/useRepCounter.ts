@@ -28,6 +28,9 @@ interface RepCounterDeps {
   onWorkoutComplete: () => void;
 }
 
+// Monotonic notification counter for ordering/gap detection
+let _notifSeq = 0;
+
 export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
   const {
     warmupTarget,
@@ -52,9 +55,20 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
   const totalRepsRef = useRef(0);
   // Ref to track workout active state (avoids stale currentWorkout closure)
   const workoutActiveRef = useRef(false);
+  // Timestamp of when workout was activated (for relative timing in logs)
+  const workoutStartTimeRef = useRef<number>(0);
 
   const setWorkoutActive = useCallback((active: boolean) => {
+    const prev = workoutActiveRef.current;
     workoutActiveRef.current = active;
+    if (active) {
+      workoutStartTimeRef.current = Date.now();
+    }
+    console.log(
+      `[REP-DEBUG] workoutActive changed: ${prev} -> ${active} | ` +
+        `lastTopCounter=${lastTopCounter.current} lastRepCounter=${lastRepCounter.current} ` +
+        `totalReps=${totalRepsRef.current}`,
+    );
   }, []);
 
   // Auto-complete when target reached (moved out of state updater)
@@ -72,7 +86,26 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
 
   const handleRepNotification = useCallback(
     (data: Uint8Array) => {
-      if (data.length < 6) return;
+      const seq = ++_notifSeq;
+      const now = Date.now();
+      const tSinceStart = workoutStartTimeRef.current
+        ? `+${((now - workoutStartTimeRef.current) / 1000).toFixed(1)}s`
+        : "no-workout";
+
+      // Log raw bytes for every notification
+      const hex = Array.from(data)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join(" ");
+      console.log(
+        `[REP-DEBUG] #${seq} raw notification (${data.length} bytes) ${tSinceStart}: ${hex}`,
+      );
+
+      if (data.length < 6) {
+        console.warn(
+          `[REP-DEBUG] #${seq} DROPPED: data too short (${data.length} < 6)`,
+        );
+        return;
+      }
 
       const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
       const numU16 = data.length / 2;
@@ -81,23 +114,39 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
         u16Values.push(view.getUint16(i * 2, true));
       }
 
-      if (u16Values.length < 3) return;
+      if (u16Values.length < 3) {
+        console.warn(
+          `[REP-DEBUG] #${seq} DROPPED: fewer than 3 u16 values (got ${u16Values.length})`,
+        );
+        return;
+      }
 
       const topCounter = u16Values[0];
       const completeCounter = u16Values[2];
       const sample = currentSampleRef.current;
 
       console.log(
-        `[INFO] Rep notification: top=${topCounter}, complete=${completeCounter}, pos=[${
-          sample?.posA || "?"
-        }, ${sample?.posB || "?"}]`,
+        `[REP-DEBUG] #${seq} ${tSinceStart} parsed: top=${topCounter}, complete=${completeCounter}, ` +
+          `allU16=[${u16Values.join(",")}], pos=[${sample?.posA ?? "null"}, ${sample?.posB ?? "null"}], ` +
+          `active=${workoutActiveRef.current}, hasSample=${!!sample}`,
       );
 
-      if (!sample || !workoutActiveRef.current) return;
+      if (!sample) {
+        console.warn(`[REP-DEBUG] #${seq} DROPPED: no currentSample yet`);
+        return;
+      }
+      if (!workoutActiveRef.current) {
+        console.warn(
+          `[REP-DEBUG] #${seq} DROPPED: workoutActive=false ` +
+            `(lastTop=${lastTopCounter.current}, lastRep=${lastRepCounter.current}, totalReps=${totalRepsRef.current})`,
+        );
+        return;
+      }
 
       // Track top of range
       if (lastTopCounter.current === undefined) {
         lastTopCounter.current = topCounter;
+        console.log(`[REP-DEBUG] #${seq} TOP baseline set: ${topCounter}`);
       } else {
         let topDelta = 0;
         if (topCounter >= lastTopCounter.current) {
@@ -106,7 +155,16 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
           topDelta = 0xffff - lastTopCounter.current + topCounter + 1;
         }
 
+        console.log(
+          `[REP-DEBUG] #${seq} TOP delta=${topDelta} (${lastTopCounter.current} -> ${topCounter})`,
+        );
+
         if (topDelta > 0) {
+          if (topDelta > 1) {
+            console.warn(
+              `[REP-DEBUG] #${seq} TOP delta=${topDelta} > 1 — possible missed notifications!`,
+            );
+          }
           console.log(
             `[SUCCESS] TOP detected! Counter: ${lastTopCounter.current} -> ${topCounter}, pos=[${sample.posA}, ${sample.posB}]`,
           );
@@ -115,6 +173,10 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
 
           // Check if we should complete at top of final rep
           const currentWorkingReps = totalRepsRef.current - warmupTarget;
+          console.log(
+            `[REP-DEBUG] #${seq} stopAtTop check: stopAtTop=${stopAtTop}, isJustLift=${isJustLiftMode}, ` +
+              `targetReps=${targetReps}, currentWorkingReps=${currentWorkingReps}, threshold=${targetReps - 1}`,
+          );
           if (
             stopAtTop &&
             !isJustLiftMode &&
@@ -133,6 +195,9 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
       // Track rep complete / bottom of range
       if (lastRepCounter.current === undefined) {
         lastRepCounter.current = completeCounter;
+        console.log(
+          `[REP-DEBUG] #${seq} REP baseline set: ${completeCounter} (first notification after reset)`,
+        );
         return;
       }
 
@@ -143,7 +208,27 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
         delta = 0xffff - lastRepCounter.current + completeCounter + 1;
       }
 
+      console.log(
+        `[REP-DEBUG] #${seq} REP delta=${delta} (${lastRepCounter.current} -> ${completeCounter}), ` +
+          `totalReps=${totalRepsRef.current}, warmupTarget=${warmupTarget}`,
+      );
+
       if (delta > 0) {
+        if (delta > 1) {
+          console.warn(
+            `[REP-DEBUG] #${seq} REP delta=${delta} > 1 — MISSED ${delta - 1} REP(S)! ` +
+              `Only counting 1. Counter jumped ${lastRepCounter.current} -> ${completeCounter}`,
+          );
+        }
+        if (delta > 100) {
+          console.error(
+            `[REP-DEBUG] #${seq} REP delta=${delta} is suspiciously large — likely counter reset/wrap. ` +
+              `IGNORING. lastRepCounter=${lastRepCounter.current}, completeCounter=${completeCounter}`,
+          );
+          lastRepCounter.current = completeCounter;
+          return;
+        }
+
         console.log(
           `[SUCCESS] BOTTOM detected! Counter: ${lastRepCounter.current} -> ${completeCounter}, pos=[${sample.posA}, ${sample.posB}]`,
         );
@@ -153,17 +238,26 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
         totalRepsRef.current += 1;
         const totalReps = totalRepsRef.current;
 
+        console.log(
+          `[REP-DEBUG] #${seq} totalReps now=${totalReps}, warmupTarget=${warmupTarget}, ` +
+            `branch=${totalReps <= warmupTarget ? "WARMUP" : "WORKING"}`,
+        );
+
         playRepSound();
 
         if (totalReps <= warmupTarget) {
           setWarmupReps((prev) => {
             const newCount = prev + 1;
             console.log(
-              `[SUCCESS] Warmup rep ${newCount}/${warmupTarget} complete`,
+              `[SUCCESS] Warmup rep ${newCount}/${warmupTarget} complete ` +
+                `(totalReps=${totalReps}, prev=${prev})`,
             );
 
             // Record warmup end time
             if (newCount === warmupTarget) {
+              console.log(
+                `[REP-DEBUG] #${seq} Warmup phase complete, recording warmupEndTime`,
+              );
               setCurrentWorkout((workout) =>
                 workout ? { ...workout, warmupEndTime: new Date() } : null,
               );
@@ -175,14 +269,21 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
             const newCount = prev + 1;
             if (targetReps > 0) {
               console.log(
-                `[SUCCESS] Working rep ${newCount}/${targetReps} complete`,
+                `[SUCCESS] Working rep ${newCount}/${targetReps} complete ` +
+                  `(totalReps=${totalReps}, prev=${prev})`,
               );
             } else {
-              console.log(`[SUCCESS] Working rep ${newCount} complete`);
+              console.log(
+                `[SUCCESS] Working rep ${newCount} complete (totalReps=${totalReps}, prev=${prev})`,
+              );
             }
             return newCount;
           });
         }
+      } else {
+        console.log(
+          `[REP-DEBUG] #${seq} delta=0, no rep counted (counter unchanged at ${completeCounter})`,
+        );
       }
 
       lastRepCounter.current = completeCounter;
@@ -201,6 +302,12 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
   );
 
   const resetCounters = useCallback(() => {
+    console.log(
+      `[REP-DEBUG] resetCounters called. Previous state: ` +
+        `warmupReps=<state>, workingReps=<state>, totalReps=${totalRepsRef.current}, ` +
+        `lastTopCounter=${lastTopCounter.current}, lastRepCounter=${lastRepCounter.current}, ` +
+        `workoutActive=${workoutActiveRef.current}, currentSample=${!!currentSampleRef.current}`,
+    );
     setWarmupReps(0);
     setWorkingReps(0);
     totalRepsRef.current = 0;
@@ -208,6 +315,9 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
     lastRepCounter.current = undefined;
     // Don't null currentSampleRef — it should always reflect the latest position
     // so rep notifications arriving right after start aren't silently dropped
+    console.log(
+      `[REP-DEBUG] resetCounters complete. All counters zeroed, refs set to undefined.`,
+    );
   }, []);
 
   return {
