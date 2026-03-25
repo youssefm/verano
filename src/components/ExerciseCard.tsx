@@ -144,7 +144,25 @@ export function ExerciseCard({
         onClick={isActive ? onStop : handleStart}
         disabled={!isConnected || (!isActive && hasActiveWorkout)}
       >
-        {isActive ? "■ Stop" : "▶ Start"}
+        {isActive ? (
+          <>
+            <span
+              style={{
+                display: "inline-block",
+                width: "0.6em",
+                height: "0.6em",
+                background: "currentColor",
+                borderRadius: "1px",
+                verticalAlign: "middle",
+                position: "relative",
+                top: "-0.05em",
+              }}
+            />{" "}
+            Stop
+          </>
+        ) : (
+          "▶ Start"
+        )}
       </button>
     </div>
   );
