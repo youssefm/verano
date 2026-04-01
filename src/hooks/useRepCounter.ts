@@ -3,7 +3,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { MonitorSample } from "../lib/types";
 import { CurrentWorkout } from "../lib/types";
-import { playRepSound } from "../lib/sound";
+import {
+  playRepSound,
+  playWorkoutCompleteGong,
+  playWorkoutStartFanfare,
+} from "../lib/sound";
 
 export interface UseRepCounterReturn {
   warmupReps: number;
@@ -80,6 +84,7 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
       workingReps >= targetReps
     ) {
       console.log("[SUCCESS] Target reps reached! Auto-completing workout...");
+      playWorkoutCompleteGong();
       onWorkoutComplete();
     }
   }, [workingReps, stopAtTop, isJustLiftMode, targetReps, onWorkoutComplete]);
@@ -187,6 +192,7 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
               "[SUCCESS] Reached top of final rep! Auto-completing workout...",
             );
             onAutoStop();
+            playWorkoutCompleteGong();
             onWorkoutComplete();
           }
         }
@@ -238,23 +244,37 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
         totalRepsRef.current += 1;
         const totalReps = totalRepsRef.current;
 
+        const isWarmup = totalReps <= warmupTarget;
+        const isLastWarmup = isWarmup && totalReps === warmupTarget;
+        // Non-stopAtTop completion (with gong) fires reactively from the useEffect
+        const willComplete =
+          !isWarmup &&
+          !stopAtTop &&
+          !isJustLiftMode &&
+          targetReps > 0 &&
+          totalReps - warmupTarget >= targetReps;
+
         console.log(
           `[REP-DEBUG] #${seq} totalReps now=${totalReps}, warmupTarget=${warmupTarget}, ` +
-            `branch=${totalReps <= warmupTarget ? "WARMUP" : "WORKING"}`,
+            `branch=${isWarmup ? "WARMUP" : "WORKING"}`,
         );
 
-        playRepSound();
+        // Play exactly one sound per rep: fanfare for workout start,
+        // gong for completion (from useEffect), or normal rep sound
+        if (isLastWarmup) {
+          playWorkoutStartFanfare();
+        } else if (!willComplete) {
+          playRepSound();
+        }
 
-        if (totalReps <= warmupTarget) {
+        if (isWarmup) {
           setWarmupReps((prev) => {
             const newCount = prev + 1;
             console.log(
               `[SUCCESS] Warmup rep ${newCount}/${warmupTarget} complete ` +
                 `(totalReps=${totalReps}, prev=${prev})`,
             );
-
-            // Record warmup end time
-            if (newCount === warmupTarget) {
+            if (isLastWarmup) {
               console.log(
                 `[REP-DEBUG] #${seq} Warmup phase complete, recording warmupEndTime`,
               );
