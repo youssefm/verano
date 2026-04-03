@@ -43,6 +43,19 @@ export function useDevice(): UseDeviceReturn {
     // Handle device disconnection events
     device.onDisconnect = () => setIsConnected(false);
 
+    // Poll GATT connection as fallback — the gattserverdisconnected event
+    // can be unreliable when a device powers off unexpectedly.
+    const pollId = setInterval(() => {
+      if (
+        device.isConnected &&
+        device.device?.gatt &&
+        !device.device.gatt.connected
+      ) {
+        device.log("GATT connection lost (detected by poll)", "error");
+        device.handleDisconnect();
+      }
+    }, 1000);
+
     // Auto-reconnect to previously paired device
     const autoConnect = async () => {
       setIsConnecting(true);
@@ -61,6 +74,7 @@ export function useDevice(): UseDeviceReturn {
     autoConnect();
 
     return () => {
+      clearInterval(pollId);
       device.disconnect();
     };
   }, []);
