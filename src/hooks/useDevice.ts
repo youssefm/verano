@@ -41,11 +41,7 @@ export function useDevice(): UseDeviceReturn {
     device.setRepListener((data) => repListenerRef.current?.(data));
 
     // Handle device disconnection events
-    const originalHandleDisconnect = device.handleDisconnect.bind(device);
-    device.handleDisconnect = () => {
-      originalHandleDisconnect();
-      setIsConnected(false);
-    };
+    device.onDisconnect = () => setIsConnected(false);
 
     // Auto-reconnect to previously paired device
     const autoConnect = async () => {

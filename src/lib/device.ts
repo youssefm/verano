@@ -73,6 +73,7 @@ export class VitruvianDevice {
   lastGoodPosB: number;
   gattQueue: GattQueueItem[];
   gattBusy: boolean;
+  onDisconnect: (() => void) | null;
 
   constructor() {
     this.device = null;
@@ -87,6 +88,7 @@ export class VitruvianDevice {
     this.monitorListeners = [];
     this.lastGoodPosA = 0;
     this.lastGoodPosB = 0;
+    this.onDisconnect = null;
 
     // GATT operation queue to prevent "operation already in progress" errors
     this.gattQueue = [];
@@ -644,12 +646,16 @@ export class VitruvianDevice {
 
   // Handle disconnection
   handleDisconnect(): void {
+    const wasConnected = this.isConnected;
     this.isConnected = false;
     this.stopMonitorPolling();
     this.rxChar = null;
     this.monitorChar = null;
     this.propertyChar = null;
     this.repNotifyChar = null;
+    if (wasConnected) {
+      this.onDisconnect?.();
+    }
   }
 
   // Disconnect from device
