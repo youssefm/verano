@@ -160,7 +160,7 @@ export class VitruvianDevice {
 
   // Try to reconnect to a previously paired device without the browser picker.
   // Returns true if successful, false if no paired device found or connection failed.
-  async reconnect(timeoutMs: number = 8000): Promise<boolean> {
+  async reconnect(timeoutMs: number): Promise<boolean> {
     if (!navigator.bluetooth?.getDevices) {
       this.log("getDevices() not supported — cannot auto-reconnect", "info");
       return false;

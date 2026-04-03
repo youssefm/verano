@@ -60,7 +60,7 @@ export function useDevice(): UseDeviceReturn {
     const autoConnect = async () => {
       setIsConnecting(true);
       try {
-        const ok = await device.reconnect();
+        const ok = await device.reconnect(10_000);
         if (ok) {
           setIsConnected(true);
           await device.sendInit();
@@ -87,11 +87,19 @@ export function useDevice(): UseDeviceReturn {
       throw new Error("Web Bluetooth not supported");
     }
 
+    const device = deviceRef.current;
+    if (!device) return;
+
     setIsConnecting(true);
     try {
-      await deviceRef.current?.connect();
+      // If we have a previously paired device, reconnect without the picker
+      const ok = await device.reconnect(10_000);
+      if (!ok) {
+        // No paired device or not in range — fall back to browser picker
+        await device.connect();
+      }
       setIsConnected(true);
-      await deviceRef.current?.sendInit();
+      await device.sendInit();
     } catch (error) {
       console.error(`[ERROR] Connection failed: ${(error as Error).message}`);
       setIsConnected(false);
