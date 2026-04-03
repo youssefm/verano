@@ -232,6 +232,7 @@ button.secondary {
 .conn-btn.disconnected {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  border: 2px solid transparent;
 }
 
 .conn-btn.disconnected .conn-dot {
@@ -243,6 +244,7 @@ button.secondary {
   color: #e67700;
   cursor: wait;
   opacity: 1;
+  border: 2px solid transparent;
 }
 
 .conn-btn.connecting .conn-dot {
