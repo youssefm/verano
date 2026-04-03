@@ -28,7 +28,7 @@ export function useDevice(): UseDeviceReturn {
   // Listener refs — the device dispatches through these so we never
   // need to re-register on the device when the consumer's callback changes.
   const monitorListenerRef = useRef<((sample: MonitorSample) => void) | null>(
-    null,
+    null
   );
   const repListenerRef = useRef<((data: Uint8Array) => void) | null>(null);
 
@@ -47,6 +47,23 @@ export function useDevice(): UseDeviceReturn {
       setIsConnected(false);
     };
 
+    // Auto-reconnect to previously paired device
+    const autoConnect = async () => {
+      setIsConnecting(true);
+      try {
+        const ok = await device.reconnect();
+        if (ok) {
+          setIsConnected(true);
+          await device.sendInit();
+        }
+      } catch {
+        // Silent failure — user can connect manually
+      } finally {
+        setIsConnecting(false);
+      }
+    };
+    autoConnect();
+
     return () => {
       device.disconnect();
     };
@@ -55,7 +72,7 @@ export function useDevice(): UseDeviceReturn {
   const connect = useCallback(async () => {
     if (!navigator.bluetooth) {
       console.error(
-        "[ERROR] Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera.",
+        "[ERROR] Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera."
       );
       throw new Error("Web Bluetooth not supported");
     }
@@ -90,7 +107,7 @@ export function useDevice(): UseDeviceReturn {
       console.log("[INFO] Workout stopped by user");
     } catch (error) {
       console.error(
-        `[ERROR] Failed to stop workout: ${(error as Error).message}`,
+        `[ERROR] Failed to stop workout: ${(error as Error).message}`
       );
       throw error;
     }
@@ -109,7 +126,7 @@ export function useDevice(): UseDeviceReturn {
     (listener: (sample: MonitorSample) => void) => {
       monitorListenerRef.current = listener;
     },
-    [],
+    []
   );
 
   const setRepListener = useCallback((listener: (data: Uint8Array) => void) => {

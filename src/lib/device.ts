@@ -17,6 +17,8 @@ import {
 } from "./protocol.js";
 import { MonitorSample } from "./types.js";
 
+const STORAGE_KEY = "verano-device";
+
 const GATT_SERVICE_UUID = "00001801-0000-1000-8000-00805f9b34fb";
 
 const NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
@@ -154,7 +156,74 @@ export class VitruvianDevice {
     }
   }
 
-  // Connect to the Vitruvian device
+  // Try to reconnect to a previously paired device without the browser picker.
+  // Returns true if successful, false if no paired device found or connection failed.
+  async reconnect(timeoutMs: number = 8000): Promise<boolean> {
+    if (!navigator.bluetooth?.getDevices) {
+      this.log("getDevices() not supported — cannot auto-reconnect", "info");
+      return false;
+    }
+
+    try {
+      const devices = await navigator.bluetooth.getDevices();
+      let savedId: string | null = null;
+      try {
+        savedId = localStorage.getItem(STORAGE_KEY);
+      } catch {
+        // localStorage may be unavailable
+      }
+
+      // Prefer the saved device, otherwise first Vee* device
+      const target =
+        devices.find((d) => d.id === savedId) ??
+        devices.find((d) => d.name?.startsWith("Vee"));
+
+      if (!target) {
+        this.log("No previously paired Vitruvian device found", "info");
+        return false;
+      }
+
+      this.log(
+        `Attempting reconnect to ${target.name ?? target.id}...`,
+        "info"
+      );
+
+      // watchAdvertisements waits for the device to be nearby
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), timeoutMs);
+
+      try {
+        await target.watchAdvertisements({ signal: ac.signal });
+        await new Promise<void>((resolve, reject) => {
+          if (ac.signal.aborted) {
+            reject(new Error("timeout"));
+            return;
+          }
+          target.addEventListener("advertisementreceived", () => resolve(), {
+            once: true,
+          });
+          ac.signal.addEventListener("abort", () =>
+            reject(new Error("timeout"))
+          );
+        });
+      } catch {
+        clearTimeout(timer);
+        this.log("Reconnect timed out — device not in range", "info");
+        return false;
+      }
+
+      clearTimeout(timer);
+
+      // We found the device advertising — now connect
+      this.device = target;
+      return await this.connectToDevice();
+    } catch (error) {
+      this.log(`Reconnect failed: ${(error as Error).message}`, "error");
+      return false;
+    }
+  }
+
+  // Connect to the Vitruvian device via browser picker
   async connect(): Promise<boolean> {
     try {
       this.log("Requesting Bluetooth device...", "info");
@@ -167,15 +236,24 @@ export class VitruvianDevice {
 
       this.log(`Found device: ${this.device.name}`, "success");
 
-      // Listen for disconnection
-      this.device.addEventListener("gattserverdisconnected", () => {
+      return await this.connectToDevice();
+    } catch (error) {
+      this.log(`Connection failed: ${(error as Error).message}`, "error");
+      throw error;
+    }
+  }
+
+  // Shared connection logic after device is selected (picker or reconnect)
+  private async connectToDevice(): Promise<boolean> {
+    try {
+      this.device!.addEventListener("gattserverdisconnected", () => {
         this.log("Device disconnected", "error");
         this.handleDisconnect();
       });
 
       // Connect to GATT server
       this.log("Connecting to GATT server...", "info");
-      this.server = await this.device.gatt!.connect();
+      this.server = await this.device!.gatt!.connect();
 
       this.log("Connected! Discovering services...", "success");
 
@@ -217,6 +295,13 @@ export class VitruvianDevice {
       // Enable core notifications
       await this.enableCoreNotifications();
 
+      // Remember device for future reconnection
+      try {
+        localStorage.setItem(STORAGE_KEY, this.device!.id);
+      } catch {
+        // localStorage may be unavailable
+      }
+
       this.isConnected = true;
       this.log("Device ready!", "success");
 
@@ -255,7 +340,7 @@ export class VitruvianDevice {
                 const value = new Uint8Array(target.value!.buffer);
                 this.log(`[notify rep] ${bytesToHex(value)}`, "info");
                 this.dispatchRepNotification(value);
-              },
+              }
             );
           } else {
             // Generic handler for other notifications
@@ -267,7 +352,7 @@ export class VitruvianDevice {
                   event.target as BluetoothRemoteGATTCharacteristic;
                 const value = new Uint8Array(target.value!.buffer);
                 this.log(`[notify ${uuid}] ${bytesToHex(value)}`, "info");
-              },
+              }
             );
           }
           this.log("    -> Notifications active", "success");
@@ -278,7 +363,7 @@ export class VitruvianDevice {
     } catch (error) {
       this.log(
         `Failed to enable notifications: ${(error as Error).message}`,
-        "error",
+        "error"
       );
     }
   }
@@ -286,7 +371,7 @@ export class VitruvianDevice {
   // Write to RX characteristic with response
   async writeWithResponse(
     label: string,
-    payload: Uint8Array,
+    payload: Uint8Array
   ): Promise<boolean> {
     return this.queueGattOperation(async (): Promise<boolean> => {
       try {
@@ -305,7 +390,7 @@ export class VitruvianDevice {
   // Write to RX characteristic without response
   async writeWithoutResponse(
     label: string,
-    payload: Uint8Array,
+    payload: Uint8Array
   ): Promise<boolean> {
     return this.queueGattOperation(async (): Promise<boolean> => {
       try {
@@ -377,12 +462,12 @@ export class VitruvianDevice {
     if (params.isJustLift) {
       this.log(
         `\nStarting ${modeStr} mode: ${formattedPerCable} per cable (${formattedEffective} effective)`,
-        "info",
+        "info"
       );
     } else {
       this.log(
         `\nStarting ${modeStr} mode: ${params.reps} reps, ${formattedPerCable} per cable (${formattedEffective} effective)`,
-        "info",
+        "info"
       );
     }
 
@@ -401,14 +486,14 @@ export class VitruvianDevice {
     const levelStr = EchoLevelNames[params.level as EchoLevelType];
     this.log(
       `\nStarting Echo mode: ${levelStr} level, ${params.eccentricPct}% eccentric`,
-      "info",
+      "info"
     );
 
     this.log(
       `Sending Echo control frame (${frame.length} bytes): ${bytesToHex(
-        frame,
+        frame
       )}`,
-      "info",
+      "info"
     );
     await this.writeWithResponse("Echo control", frame);
     this.log("Echo mode started successfully!", "success");
@@ -436,7 +521,7 @@ export class VitruvianDevice {
       while (this.monitorPollingActive) {
         try {
           const value = await this.queueGattOperation(() =>
-            this.monitorChar!.readValue(),
+            this.monitorChar!.readValue()
           );
           const data = new Uint8Array((value as DataView).buffer);
           const sample = this.parseMonitorData(data);
@@ -545,7 +630,7 @@ export class VitruvianDevice {
   dispatchRepNotification(data: Uint8Array): void {
     if (this.repListeners.length === 0) {
       console.warn(
-        `[DEVICE-DEBUG] Rep notification received but NO listeners registered`,
+        `[DEVICE-DEBUG] Rep notification received but NO listeners registered`
       );
     }
     for (const listener of this.repListeners) {

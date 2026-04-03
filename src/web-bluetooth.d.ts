@@ -4,9 +4,15 @@ interface BluetoothDevice {
   readonly id: string;
   readonly name?: string;
   readonly gatt?: BluetoothRemoteGATTServer;
+  watchAdvertisements(options?: { signal?: AbortSignal }): Promise<void>;
   addEventListener(
     type: "gattserverdisconnected",
     listener: EventListener
+  ): void;
+  addEventListener(
+    type: "advertisementreceived",
+    listener: EventListener,
+    options?: { once?: boolean }
   ): void;
   removeEventListener(
     type: "gattserverdisconnected",
@@ -105,6 +111,7 @@ interface BluetoothServiceDataFilter {
 
 interface Bluetooth {
   getAvailability(): Promise<boolean>;
+  getDevices(): Promise<BluetoothDevice[]>;
   requestDevice(options?: RequestDeviceOptions): Promise<BluetoothDevice>;
 }
 
