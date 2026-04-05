@@ -15,7 +15,6 @@ import { TOTAL_SETS, getSetWeight } from "./lib/sets";
 import "./styles.css";
 
 export function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTimeRange, setCurrentTimeRange] = useState<number | null>(30);
 
   // Set tracking (non-persistent, resets on refresh)
@@ -83,7 +82,7 @@ export function App() {
     viewWorkoutOnGraph,
   } = useWorkout(handleAutoStop, () => {
     console.log(
-      `[APP-DEBUG] onWorkoutComplete callback fired (advanceSet + completeWorkout)`,
+      `[APP-DEBUG] onWorkoutComplete callback fired (advanceSet + completeWorkout)`
     );
     advanceSet();
     completeWorkout();
@@ -102,7 +101,7 @@ export function App() {
       handleMonitorSample(sample);
       addData(sample);
     },
-    [handleMonitorSample, addData],
+    [handleMonitorSample, addData]
   );
 
   // Keep device listeners pointed at the latest handlers (just ref assignments)
@@ -205,12 +204,12 @@ export function App() {
         await sendDevice();
       } catch (error) {
         console.error(
-          `[ERROR] Failed to start workout: ${(error as Error).message}`,
+          `[ERROR] Failed to start workout: ${(error as Error).message}`
         );
         resetWorkout();
       }
     },
-    [startProgram, startEcho, startWorkout, resetWorkout, exerciseSets],
+    [startProgram, startEcho, startWorkout, resetWorkout, exerciseSets]
   );
 
   // Stop workout handler
@@ -223,7 +222,7 @@ export function App() {
       await sendStopCommand();
     } catch (error) {
       console.error(
-        `[ERROR] Failed to stop workout: ${(error as Error).message}`,
+        `[ERROR] Failed to stop workout: ${(error as Error).message}`
       );
     }
   }, [sendStopCommand, completeWorkout]);
@@ -236,7 +235,7 @@ export function App() {
         viewWorkout(workout);
       }
     },
-    [viewWorkoutOnGraph, viewWorkout],
+    [viewWorkoutOnGraph, viewWorkout]
   );
 
   // Handle time range change
@@ -245,7 +244,7 @@ export function App() {
       setCurrentTimeRange(seconds);
       setTimeRange(seconds);
     },
-    [setTimeRange],
+    [setTimeRange]
   );
 
   // Log startup message
@@ -255,26 +254,9 @@ export function App() {
 
   return (
     <>
-      {/* Mobile hamburger menu */}
-      <button
-        className="hamburger"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-
-      {/* Overlay for mobile */}
-      <div
-        className={`overlay ${sidebarOpen ? "show" : ""}`}
-        onClick={() => setSidebarOpen(false)}
-      ></div>
-
       <div className="app-container">
         {/* Sidebar */}
         <Sidebar
-          isOpen={sidebarOpen}
           isConnected={isConnected}
           isConnecting={isConnecting}
           onConnect={connect}

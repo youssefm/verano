@@ -9,7 +9,6 @@ import { WorkoutConfig, Exercise } from "../lib/types";
 import { exercisesAtom } from "../lib/atoms";
 
 interface SidebarProps {
-  isOpen: boolean;
   isConnected: boolean;
   isConnecting: boolean;
   onConnect: () => void;
@@ -21,7 +20,6 @@ interface SidebarProps {
 }
 
 export function Sidebar({
-  isOpen,
   isConnected,
   isConnecting,
   onConnect,
@@ -46,7 +44,7 @@ export function Sidebar({
 
   const handleUpdateExercise = (updated: Exercise) => {
     setExercises((prev) =>
-      prev.map((ex) => (ex.id === updated.id ? updated : ex)),
+      prev.map((ex) => (ex.id === updated.id ? updated : ex))
     );
   };
 
@@ -55,7 +53,7 @@ export function Sidebar({
   };
 
   return (
-    <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+    <aside className="sidebar">
       <div className="sidebar-header">
         <h1>Verano</h1>
         <p>Web Bluetooth Interface</p>
