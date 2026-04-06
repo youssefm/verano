@@ -1,6 +1,6 @@
 // App.tsx - Main application component
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Sidebar,
   PositionBars,
@@ -10,7 +10,7 @@ import {
 } from "./components";
 import { useDevice, useWorkout, useChart } from "./hooks";
 import { ProgramModeNames, EchoLevelNames } from "./lib/modes";
-import { WorkoutConfig } from "./lib/types";
+import type { WorkoutConfig } from "./lib/types";
 import { TOTAL_SETS, getSetWeight } from "./lib/sets";
 import "./styles.css";
 
@@ -40,12 +40,10 @@ export function App() {
     useChart();
 
   // Auto-stop and workout complete handlers (defined before useWorkout)
-  const handleAutoStop = useCallback(async () => {
-    try {
-      await sendStopCommand();
-    } catch (error) {
+  const handleAutoStop = useCallback(() => {
+    void sendStopCommand().catch(() => {
       // Error already logged in sendStopCommand
-    }
+    });
   }, [sendStopCommand]);
 
   // Advance to next set for the active exercise
@@ -60,6 +58,8 @@ export function App() {
       return null;
     });
   }, []);
+
+  const completeWorkoutRef = useRef<() => void>(() => {});
 
   // Workout hook for state management
   const {
@@ -85,8 +85,12 @@ export function App() {
       `[APP-DEBUG] onWorkoutComplete callback fired (advanceSet + completeWorkout)`
     );
     advanceSet();
-    completeWorkout();
+    completeWorkoutRef.current();
   });
+
+  useEffect(() => {
+    completeWorkoutRef.current = completeWorkout;
+  }, [completeWorkout]);
 
   // Handle monitor samples - update chart and workout
   const onMonitorSample = useCallback(

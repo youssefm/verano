@@ -1,12 +1,7 @@
 // components/ExerciseCard.tsx - Compact exercise card with quick adjust controls
 
 import { useState } from "react";
-import {
-  Exercise,
-  WorkoutConfig,
-  ProgramWorkoutConfig,
-  EchoWorkoutConfig,
-} from "../lib/types";
+import type { Exercise, WorkoutConfig } from "../lib/types";
 import { ProgramModeNames, EchoLevelNames } from "../lib/modes";
 import { TOTAL_SETS, getSetWeight } from "../lib/sets";
 
@@ -39,52 +34,52 @@ export function ExerciseCard({
 
   const getModeDescription = () => {
     if (isEcho) {
-      const c = config as EchoWorkoutConfig;
       const parts = [
-        `Echo ${EchoLevelNames[c.level]}`,
-        `${c.eccentricPct}% ecc`,
+        `Echo ${EchoLevelNames[config.level]}`,
+        `${config.eccentricPct}% ecc`,
       ];
-      if (!c.isJustLift) parts.push(`${c.targetReps} reps`);
-      if (c.isJustLift) parts.push("Just Lift");
+      if (!config.isJustLift) parts.push(`${config.targetReps} reps`);
+      if (config.isJustLift) parts.push("Just Lift");
       return parts.join(" · ");
     } else {
-      const c = config as ProgramWorkoutConfig;
-      const parts = [ProgramModeNames[c.mode]];
-      if (!c.isJustLift) parts.push(`${c.reps} reps`);
-      if (c.progression !== 0) {
-        parts.push(`${c.progression > 0 ? "+" : ""}${c.progression} kg/rep`);
+      const parts = [ProgramModeNames[config.mode]];
+      if (!config.isJustLift) parts.push(`${config.reps} reps`);
+      if (config.progression !== 0) {
+        parts.push(
+          `${config.progression > 0 ? "+" : ""}${config.progression} kg/rep`
+        );
       }
-      if (c.isJustLift) parts.push("Just Lift");
+      if (config.isJustLift) parts.push("Just Lift");
       return parts.join(" · ");
     }
   };
 
-  const weight = isEcho ? null : (config as ProgramWorkoutConfig).weight;
+  const weight = isEcho ? null : config.weight;
 
   const adjustWeight = (delta: number) => {
     if (isEcho) return;
-    const c = config as ProgramWorkoutConfig;
     const newWeight = Math.max(
       0,
-      Math.min(100, +(c.weight + delta).toFixed(1)),
+      Math.min(100, +(config.weight + delta).toFixed(1))
     );
-    onUpdate({ ...exercise, config: { ...c, weight: newWeight } });
+    onUpdate({ ...exercise, config: { ...config, weight: newWeight } });
   };
 
   const effectiveWeight = isEcho
     ? null
-    : getSetWeight((config as ProgramWorkoutConfig).weight, currentSet);
+    : getSetWeight(config.weight, currentSet);
 
   const handleStart = () => {
     if (isEcho) {
-      const c = config as EchoWorkoutConfig;
       onStart(
-        { ...c, targetReps: c.isJustLift ? 0 : c.targetReps },
-        exercise.id,
+        { ...config, targetReps: config.isJustLift ? 0 : config.targetReps },
+        exercise.id
       );
     } else {
-      const c = config as ProgramWorkoutConfig;
-      onStart({ ...c, reps: c.isJustLift ? 0 : c.reps }, exercise.id);
+      onStart(
+        { ...config, reps: config.isJustLift ? 0 : config.reps },
+        exercise.id
+      );
     }
   };
 

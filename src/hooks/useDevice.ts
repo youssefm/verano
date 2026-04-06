@@ -1,12 +1,9 @@
 // hooks/useDevice.ts - Hook for managing Bluetooth device connection
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import {
-  VitruvianDevice,
-  DeviceProgramParams,
-  DeviceEchoParams,
-} from "../lib/device";
-import { MonitorSample } from "../lib/types";
+import type { DeviceProgramParams, DeviceEchoParams } from "../lib/device";
+import { VitruvianDevice } from "../lib/device";
+import type { MonitorSample } from "../lib/types";
 
 export interface UseDeviceReturn {
   isConnected: boolean;
@@ -58,11 +55,9 @@ export function useDevice(): UseDeviceReturn {
         setIsConnecting(false);
       }
     };
-    autoConnect();
+    void autoConnect();
 
-    return () => {
-      device.disconnect();
-    };
+    return () => device.disconnect();
   }, []);
 
   const connect = useCallback(async () => {
@@ -95,14 +90,15 @@ export function useDevice(): UseDeviceReturn {
     }
   }, []);
 
-  const disconnect = useCallback(async () => {
-    try {
-      await deviceRef.current?.disconnect();
-      setIsConnected(false);
-    } catch (error) {
-      console.error(`[ERROR] Disconnect failed: ${(error as Error).message}`);
-      throw error;
-    }
+  const disconnect = useCallback(() => {
+    return Promise.resolve(deviceRef.current?.disconnect())
+      .then(() => {
+        setIsConnected(false);
+      })
+      .catch((error) => {
+        console.error(`[ERROR] Disconnect failed: ${(error as Error).message}`);
+        throw error;
+      });
   }, []);
 
   const sendStopCommand = useCallback(async () => {

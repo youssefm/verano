@@ -1,6 +1,6 @@
 // components/PositionBars.tsx - Cable position visualizer
 
-import { LiveStats, RepRanges } from "../lib/types";
+import type { LiveStats, RepRanges } from "../lib/types";
 
 interface PositionBarsProps {
   liveStats: LiveStats;

@@ -5,7 +5,7 @@ import { useAtom } from "jotai";
 import { ConnectionSection } from "./ConnectionSection";
 import { ExerciseCard } from "./ExerciseCard";
 import { ExerciseForm } from "./ExerciseForm";
-import { WorkoutConfig, Exercise } from "../lib/types";
+import type { WorkoutConfig, Exercise } from "../lib/types";
 import { exercisesAtom } from "../lib/atoms";
 
 interface SidebarProps {

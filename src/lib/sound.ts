@@ -19,7 +19,7 @@ export function playRepSound(): void {
 
     // Resume context if suspended (browser autoplay policy)
     if (ctx.state === "suspended") {
-      ctx.resume();
+      void ctx.resume();
     }
 
     const t = ctx.currentTime;
@@ -61,7 +61,7 @@ export function playRepSound(): void {
 export function playWorkoutStartFanfare(): void {
   try {
     const ctx = getAudioContext();
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state === "suspended") void ctx.resume();
     const t = ctx.currentTime;
     const notes = [523, 659, 784]; // C5, E5, G5
     notes.forEach((freq, i) => {
@@ -77,14 +77,16 @@ export function playWorkoutStartFanfare(): void {
       osc.start(start);
       osc.stop(start + 0.25);
     });
-  } catch {}
+  } catch {
+    // Silently ignore – audio may be blocked by browser policy
+  }
 }
 
 /** Gong: deep resonant hit with long decay */
 export function playWorkoutCompleteGong(): void {
   try {
     const ctx = getAudioContext();
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state === "suspended") void ctx.resume();
     const t = ctx.currentTime;
     // Fundamental
     const osc1 = ctx.createOscillator();
@@ -119,5 +121,7 @@ export function playWorkoutCompleteGong(): void {
     gain3.connect(ctx.destination);
     osc3.start(t);
     osc3.stop(t + 1.0);
-  } catch {}
+  } catch {
+    // Silently ignore – audio may be blocked by browser policy
+  }
 }

@@ -1,6 +1,6 @@
 // types.ts - Shared types for the application
 
-import { ProgramModeType, EchoLevelType } from "./modes";
+import type { ProgramModeType, EchoLevelType } from "./modes";
 
 export interface PositionRange {
   min: number;

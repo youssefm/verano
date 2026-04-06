@@ -20,7 +20,6 @@ export function RepCounters({
   totalSets,
 }: RepCountersProps) {
   const isWarming = hasActiveWorkout && warmupReps < warmupTarget;
-  const isWorking = hasActiveWorkout && warmupReps >= warmupTarget;
 
   let label: string;
   let display: string;

@@ -1,7 +1,7 @@
 // hooks/useWorkoutHistory.ts - Manage completed workout history
 
 import { useState, useCallback } from "react";
-import { Workout } from "../lib/types";
+import type { Workout } from "../lib/types";
 
 export interface UseWorkoutHistoryReturn {
   workoutHistory: Workout[];
@@ -25,7 +25,7 @@ export function useWorkoutHistory(): UseWorkoutHistoryReturn {
       }
       return workoutHistory[index];
     },
-    [workoutHistory],
+    [workoutHistory]
   );
 
   return { workoutHistory, addWorkout, viewWorkoutOnGraph };

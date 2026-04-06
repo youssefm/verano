@@ -2,7 +2,7 @@
 
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
-import { MonitorSample } from "./types";
+import type { MonitorSample } from "./types";
 
 interface LoadHistoryPoint {
   timestamp: Date;
@@ -83,8 +83,6 @@ export class ChartManager {
       [], // Right Cable Position (A)
     ];
 
-    const manager = this;
-
     // Plugin to draw event markers
     const eventMarkersPlugin: uPlot.Plugin = {
       hooks: {
@@ -96,7 +94,7 @@ export class ChartManager {
             ctx.save();
 
             // Draw each event marker
-            manager.eventMarkers.forEach((marker) => {
+            this.eventMarkers.forEach((marker) => {
               const markerTime = marker.time.getTime() / 1000; // Convert to Unix seconds
               const x = u.valToPos(markerTime, "x", true);
 
@@ -192,7 +190,7 @@ export class ChartManager {
           width: 1.5,
           scale: "load",
           value: (_u: uPlot, v: number | null): string =>
-            manager.formatLoadValue(v),
+            this.formatLoadValue(v),
         },
         {
           label: "Left Load",
@@ -200,7 +198,7 @@ export class ChartManager {
           width: 1.5,
           scale: "load",
           value: (_u: uPlot, v: number | null): string =>
-            manager.formatLoadValue(v),
+            this.formatLoadValue(v),
         },
         {
           label: "Right Load",
@@ -208,7 +206,7 @@ export class ChartManager {
           width: 1.5,
           scale: "load",
           value: (_u: uPlot, v: number | null): string =>
-            manager.formatLoadValue(v),
+            this.formatLoadValue(v),
         },
         {
           label: "Left Position",
@@ -348,7 +346,7 @@ export class ChartManager {
       // Log when we hit the limit for the first time
       if (this.loadHistory.length === this.maxHistoryPoints) {
         console.log(
-          "[INFO] Reached 2hr data limit. Oldest data points will be removed as new data arrives.",
+          "[INFO] Reached 2hr data limit. Oldest data points will be removed as new data arrives."
         );
       }
     }
@@ -388,7 +386,7 @@ export class ChartManager {
       const displayA = this.loadUnit.toDisplay(point.loadA);
 
       totalLoads.push(
-        displayTotal != null && isFinite(displayTotal) ? displayTotal : 0,
+        displayTotal != null && isFinite(displayTotal) ? displayTotal : 0
       );
       loadsB.push(displayB != null && isFinite(displayB) ? displayB : 0);
       loadsA.push(displayA != null && isFinite(displayA) ? displayA : 0);
@@ -493,7 +491,7 @@ export class ChartManager {
     URL.revokeObjectURL(url);
 
     console.log(
-      `[SUCCESS] Exported ${this.loadHistory.length} data points to CSV`,
+      `[SUCCESS] Exported ${this.loadHistory.length} data points to CSV`
     );
   }
 

@@ -1,11 +1,7 @@
 // protocol.ts - BLE protocol frame builders
 
-import {
-  getModeProfile,
-  getEchoParams,
-  ProgramModeType,
-  EchoLevelType,
-} from "./modes.js";
+import type { ProgramModeType, EchoLevelType } from "./modes.js";
+import { getModeProfile, getEchoParams } from "./modes.js";
 
 export interface ProgramParams {
   mode: ProgramModeType;

@@ -1,6 +1,6 @@
 // components/WorkoutHistory.tsx - Workout history display
 
-import { Workout } from "../lib/types";
+import type { Workout } from "../lib/types";
 
 interface WorkoutHistoryProps {
   workouts: Workout[];

@@ -1,12 +1,8 @@
 // components/WorkoutConfigFields.tsx - Shared form fields for workout configuration
 
-import {
-  WorkoutModeNames,
-  EchoLevel,
-  EchoLevelNames,
-  EchoLevelType,
-} from "../lib/modes";
-import {
+import type { EchoLevelType } from "../lib/modes";
+import { WorkoutModeNames, EchoLevel, EchoLevelNames } from "../lib/modes";
+import type {
   WorkoutConfig,
   ProgramWorkoutConfig,
   EchoWorkoutConfig,
@@ -70,7 +66,7 @@ export function WorkoutConfigFields({
         </label>
         <select
           id={id("mode")}
-          value={isEcho ? "echo" : (config as ProgramWorkoutConfig).mode}
+          value={isEcho ? "echo" : config.mode}
           onChange={(e) => handleModeChange(e.target.value)}
         >
           {Object.entries(WorkoutModeNames).map(([value, label]) => (
@@ -87,7 +83,7 @@ export function WorkoutConfigFields({
             <label htmlFor={id("echoLevel")}>Echo Level:</label>
             <select
               id={id("echoLevel")}
-              value={(config as EchoWorkoutConfig).level + 1}
+              value={config.level + 1}
               onChange={(e) =>
                 patchEcho({
                   level: (parseInt(e.target.value) - 1) as EchoLevelType,
@@ -106,7 +102,7 @@ export function WorkoutConfigFields({
             <input
               type="number"
               id={id("eccentric")}
-              value={(config as EchoWorkoutConfig).eccentricPct}
+              value={config.eccentricPct}
               onChange={(e) =>
                 patchEcho({ eccentricPct: parseInt(e.target.value) })
               }
@@ -152,7 +148,7 @@ export function WorkoutConfigFields({
             <input
               type="number"
               id={id("progression")}
-              value={(config as ProgramWorkoutConfig).progression}
+              value={config.progression}
               onChange={(e) => {
                 const v = parseFloat(e.target.value);
                 if (!isNaN(v)) patchProgram({ progression: v });
@@ -183,11 +179,7 @@ export function WorkoutConfigFields({
             <input
               type="number"
               id={id("reps")}
-              value={
-                isEcho
-                  ? (config as EchoWorkoutConfig).targetReps
-                  : (config as ProgramWorkoutConfig).reps
-              }
+              value={isEcho ? config.targetReps : config.reps}
               onChange={(e) => {
                 const v = parseInt(e.target.value);
                 if (isEcho) patchEcho({ targetReps: v });

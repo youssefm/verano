@@ -1,7 +1,7 @@
 // hooks/useRepRanges.ts - Track rep position ranges (top/bottom of each cable)
 
 import { useState, useCallback, useRef } from "react";
-import { PositionRange, RepRanges } from "../lib/types";
+import type { PositionRange, RepRanges } from "../lib/types";
 
 const WINDOW_SIZE_WARMUP = 2;
 const WINDOW_SIZE_WORKING = 3;
@@ -38,7 +38,7 @@ function calculateRange(arr: number[]): PositionRange | null {
 export function useRepRanges(
   warmupReps: number,
   workingReps: number,
-  warmupTarget: number,
+  warmupTarget: number
 ): UseRepRangesReturn {
   const [repRanges, setRepRanges] = useState<RepRanges>(emptyRanges);
 
@@ -78,7 +78,7 @@ export function useRepRanges(
         topPositionsB.current.shift();
       updateRepRanges();
     },
-    [getWindowSize, updateRepRanges],
+    [getWindowSize, updateRepRanges]
   );
 
   const recordBottomPosition = useCallback(
@@ -92,7 +92,7 @@ export function useRepRanges(
         bottomPositionsB.current.shift();
       updateRepRanges();
     },
-    [getWindowSize, updateRepRanges],
+    [getWindowSize, updateRepRanges]
   );
 
   const resetRanges = useCallback(() => {

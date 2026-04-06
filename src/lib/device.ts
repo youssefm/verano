@@ -1,21 +1,15 @@
 // device.ts - Vitruvian BLE device connection and management
 
-import {
-  ProgramModeNames,
-  EchoLevelNames,
-  EchoLevelType,
-  ProgramModeType,
-} from "./modes.js";
+import { ProgramModeNames, EchoLevelNames } from "./modes.js";
+import type { ProgramParams, EchoControlParams } from "./protocol.js";
 import {
   buildInitCommand,
   buildInitPreset,
   buildProgramParams,
   buildEchoControl,
   bytesToHex,
-  ProgramParams,
-  EchoControlParams,
 } from "./protocol.js";
-import { MonitorSample } from "./types.js";
+import type { MonitorSample } from "./types.js";
 
 const STORAGE_KEY = "verano-device";
 
@@ -111,7 +105,7 @@ export class VitruvianDevice {
         resolve: resolve as (value: unknown) => void,
         reject,
       });
-      this.processGattQueue();
+      void this.processGattQueue();
     });
   }
 
@@ -141,7 +135,7 @@ export class VitruvianDevice {
     } finally {
       this.gattBusy = false;
       // Process next operation in queue
-      this.processGattQueue();
+      void this.processGattQueue();
     }
   }
 
@@ -441,7 +435,7 @@ export class VitruvianDevice {
   async startProgram(params: DeviceProgramParams): Promise<void> {
     const frame = buildProgramParams(params);
 
-    const modeStr = ProgramModeNames[params.mode as ProgramModeType];
+    const modeStr = ProgramModeNames[params.mode];
     const unit = params.displayUnit || "kg";
     const perCableDisplay =
       typeof params.perCableDisplay === "number"
@@ -485,7 +479,7 @@ export class VitruvianDevice {
   async startEcho(params: DeviceEchoParams): Promise<void> {
     const frame = buildEchoControl(params);
 
-    const levelStr = EchoLevelNames[params.level as EchoLevelType];
+    const levelStr = EchoLevelNames[params.level];
     this.log(
       `\nStarting Echo mode: ${levelStr} level, ${params.eccentricPct}% eccentric`,
       "info"
@@ -525,15 +519,15 @@ export class VitruvianDevice {
           const value = await this.queueGattOperation(() =>
             this.monitorChar!.readValue()
           );
-          const data = new Uint8Array((value as DataView).buffer);
+          const data = new Uint8Array(value.buffer);
           const sample = this.parseMonitorData(data);
           this.dispatchMonitor(sample);
-        } catch (error) {
+        } catch {
           // GATT queue flushed or read failed — if still active, keep going
         }
       }
     };
-    poll();
+    void poll();
   }
 
   // Stop monitor polling
@@ -659,10 +653,10 @@ export class VitruvianDevice {
   }
 
   // Disconnect from device
-  async disconnect(): Promise<void> {
+  disconnect(): void {
     if (this.device && this.device.gatt?.connected) {
       this.stopMonitorPolling();
-      await this.device.gatt.disconnect();
+      this.device.gatt.disconnect();
       this.log("Disconnected from device", "info");
     }
     this.handleDisconnect();

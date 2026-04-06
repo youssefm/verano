@@ -1,8 +1,8 @@
 // hooks/useAutoStop.ts - Auto-stop timer when user stays at bottom of range
 
 import { useState, useCallback, useRef } from "react";
-import { MonitorSample } from "../lib/types";
-import { RepRanges } from "../lib/types";
+import type { MonitorSample } from "../lib/types";
+import type { RepRanges } from "../lib/types";
 
 const AUTO_STOP_DURATION = 5000; // 5 seconds
 
@@ -50,7 +50,7 @@ export function useAutoStop(onAutoStop: () => void): UseAutoStopReturn {
         if (autoStopStartTime.current === null) {
           autoStopStartTime.current = Date.now();
           console.log(
-            "[INFO] Near bottom of range, starting auto-stop timer (5s)...",
+            "[INFO] Near bottom of range, starting auto-stop timer (5s)..."
           );
         }
 
@@ -70,7 +70,7 @@ export function useAutoStop(onAutoStop: () => void): UseAutoStopReturn {
         setAutoStopProgress(0);
       }
     },
-    [onAutoStop],
+    [onAutoStop]
   );
 
   const resetAutoStop = useCallback(() => {

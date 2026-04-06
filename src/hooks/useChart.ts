@@ -1,7 +1,8 @@
 // hooks/useChart.ts - Hook for managing chart state
 
 import { useRef, useCallback, useEffect } from "react";
-import { ChartManager, MonitorSample, Workout } from "../lib/chart";
+import type { MonitorSample, Workout } from "../lib/chart";
+import { ChartManager } from "../lib/chart";
 
 export interface UseChartReturn {
   initChart: (containerId: string) => void;
