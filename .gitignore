@@ -8,6 +8,9 @@ dist/
 *.log
 npm-debug.log*
 
+# Playwright CLI artifacts
+.playwright-cli/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

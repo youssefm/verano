@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { DeviceProgramParams, DeviceEchoParams } from "../lib/device";
-import { VitruvianDevice } from "../lib/device";
+import { createDeviceClient, type DeviceClient } from "../lib/deviceClient";
 import type { MonitorSample } from "../lib/types";
 
 export interface UseDeviceReturn {
@@ -20,7 +20,7 @@ export interface UseDeviceReturn {
 export function useDevice(): UseDeviceReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const deviceRef = useRef<VitruvianDevice | null>(null);
+  const deviceRef = useRef<DeviceClient | null>(null);
 
   // Listener refs — the device dispatches through these so we never
   // need to re-register on the device when the consumer's callback changes.
@@ -31,13 +31,14 @@ export function useDevice(): UseDeviceReturn {
 
   // Initialize device on mount and register stable delegates once
   useEffect(() => {
-    const device = new VitruvianDevice();
+    const device = createDeviceClient();
     deviceRef.current = device;
 
     device.setMonitorListener((sample) => monitorListenerRef.current?.(sample));
     device.setRepListener((data) => repListenerRef.current?.(data));
 
-    // Handle device disconnection events
+    // Handle device connection events
+    device.onConnect = () => setIsConnected(true);
     device.onDisconnect = () => setIsConnected(false);
 
     // Auto-reconnect to previously paired device
@@ -61,13 +62,6 @@ export function useDevice(): UseDeviceReturn {
   }, []);
 
   const connect = useCallback(async () => {
-    if (!navigator.bluetooth) {
-      console.error(
-        "[ERROR] Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera."
-      );
-      throw new Error("Web Bluetooth not supported");
-    }
-
     const device = deviceRef.current;
     if (!device) return;
 

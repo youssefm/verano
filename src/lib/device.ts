@@ -67,6 +67,7 @@ export class VitruvianDevice {
   lastGoodPosB: number;
   gattQueue: GattQueueItem[];
   gattBusy: boolean;
+  onConnect: (() => void) | null;
   onDisconnect: (() => void) | null;
 
   constructor() {
@@ -82,6 +83,7 @@ export class VitruvianDevice {
     this.monitorListeners = [];
     this.lastGoodPosA = 0;
     this.lastGoodPosB = 0;
+    this.onConnect = null;
     this.onDisconnect = null;
 
     // GATT operation queue to prevent "operation already in progress" errors
@@ -221,6 +223,14 @@ export class VitruvianDevice {
 
   // Connect to the Vitruvian device via browser picker
   async connect(): Promise<boolean> {
+    if (!navigator.bluetooth) {
+      this.log(
+        "Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera.",
+        "error"
+      );
+      throw new Error("Web Bluetooth not supported");
+    }
+
     try {
       this.log("Requesting Bluetooth device...", "info");
 
@@ -300,6 +310,7 @@ export class VitruvianDevice {
 
       this.isConnected = true;
       this.log("Device ready!", "success");
+      this.onConnect?.();
 
       return true;
     } catch (error) {
@@ -468,6 +479,7 @@ export class VitruvianDevice {
     }
 
     this.log(`Sending program frame (96 bytes): ${bytesToHex(frame)}`, "info");
+
     await this.writeWithResponse("Program params", frame);
     this.log("Program started successfully!", "success");
 
@@ -491,6 +503,7 @@ export class VitruvianDevice {
       )}`,
       "info"
     );
+
     await this.writeWithResponse("Echo control", frame);
     this.log("Echo mode started successfully!", "success");
 
