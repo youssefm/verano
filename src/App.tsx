@@ -12,6 +12,8 @@ import { useDevice, useWorkout, useChart } from "./hooks";
 import { ProgramModeNames, EchoLevelNames } from "./lib/modes";
 import type { WorkoutConfig } from "./lib/types";
 import { TOTAL_SETS, getSetWeight } from "./lib/sets";
+import { useAtomValue } from "jotai";
+import { exercisesAtom } from "./lib/atoms";
 import "./styles.css";
 
 export function App() {
@@ -21,6 +23,7 @@ export function App() {
   const [exerciseSets, setExerciseSets] = useState<Record<string, number>>({});
   const [activeSet, setActiveSet] = useState(1);
   const [activeExerciseId, setActiveExerciseId] = useState<string | null>(null);
+  const exercises = useAtomValue(exercisesAtom);
 
   // Device hook for Bluetooth connection
   const {
@@ -52,12 +55,20 @@ export function App() {
       if (exId) {
         setExerciseSets((prev) => {
           const current = prev[exId] || 1;
-          return { ...prev, [exId]: current >= TOTAL_SETS ? 1 : current + 1 };
+          const exercise = exercises.find((e) => e.id === exId);
+          const isProgram = exercise?.config.type === "program";
+          const next =
+            current < TOTAL_SETS
+              ? current + 1
+              : isProgram && current === TOTAL_SETS
+                ? TOTAL_SETS + 1
+                : 1;
+          return { ...prev, [exId]: next };
         });
       }
       return null;
     });
-  }, []);
+  }, [exercises]);
 
   const completeWorkoutRef = useRef<() => void>(() => {});
 
@@ -147,9 +158,17 @@ export function App() {
           return;
         }
 
-        modeName = isJustLift
-          ? `Just Lift (${ProgramModeNames[mode]})`
-          : ProgramModeNames[mode];
+        const isBurnout = currentSet > TOTAL_SETS;
+        if (isBurnout) {
+          isJustLift = true;
+          reps = 0;
+        }
+
+        modeName = isBurnout
+          ? `Burnout (${ProgramModeNames[mode]})`
+          : isJustLift
+            ? `Just Lift (${ProgramModeNames[mode]})`
+            : ProgramModeNames[mode];
 
         sendDevice = () =>
           startProgram({
@@ -219,7 +238,16 @@ export function App() {
   // Stop workout handler
   const handleStop = useCallback(async () => {
     // Manual stop — save workout but don't advance the set
+    // (except burnout, which always wraps back to set 1)
     console.log(`[APP-DEBUG] handleStop (manual stop) called`);
+    if (activeExerciseId) {
+      setExerciseSets((prev) => {
+        if ((prev[activeExerciseId] || 1) > TOTAL_SETS) {
+          return { ...prev, [activeExerciseId]: 1 };
+        }
+        return prev;
+      });
+    }
     setActiveExerciseId(null);
     completeWorkout();
     try {
@@ -229,7 +257,12 @@ export function App() {
         `[ERROR] Failed to stop workout: ${(error as Error).message}`
       );
     }
-  }, [sendStopCommand, completeWorkout]);
+  }, [sendStopCommand, completeWorkout, activeExerciseId]);
+
+  // Skip burnout — reset set counter without starting a workout
+  const handleSkipBurnout = useCallback((exerciseId: string) => {
+    setExerciseSets((prev) => ({ ...prev, [exerciseId]: 1 }));
+  }, []);
 
   // Handle viewing workout on graph
   const handleViewGraph = useCallback(
@@ -267,6 +300,7 @@ export function App() {
           onDisconnect={disconnect}
           onStartWorkout={handleStartWorkout}
           onStopWorkout={handleStop}
+          onSkipBurnout={handleSkipBurnout}
           exerciseSets={exerciseSets}
           activeExerciseId={activeExerciseId}
         />

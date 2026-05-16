@@ -20,6 +20,7 @@ export function RepCounters({
   totalSets,
 }: RepCountersProps) {
   const isWarming = hasActiveWorkout && warmupReps < warmupTarget;
+  const isBurnout = hasActiveWorkout && !isWarming && currentSet > totalSets;
 
   let label: string;
   let display: string;
@@ -39,6 +40,12 @@ export function RepCounters({
     bg = "#e7f5ff";
     labelColor = "#1971c2";
     valueColor = "#1864ab";
+  } else if (isBurnout) {
+    label = "Burnout";
+    display = `${workingReps}`;
+    bg = "#fff3bf";
+    labelColor = "#e67700";
+    valueColor = "#d9480f";
   } else {
     label = "Working";
     display =
@@ -89,7 +96,7 @@ export function RepCounters({
             fontWeight: 500,
           }}
         >
-          Set {currentSet}/{totalSets}
+          {currentSet > totalSets ? "Burnout" : `Set ${currentSet}/${totalSets}`}
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@ interface SidebarProps {
   onDisconnect: () => void;
   onStartWorkout: (config: WorkoutConfig, exerciseId?: string) => void;
   onStopWorkout: () => void;
+  onSkipBurnout: (exerciseId: string) => void;
   exerciseSets: Record<string, number>;
   activeExerciseId: string | null;
 }
@@ -26,6 +27,7 @@ export function Sidebar({
   onDisconnect,
   onStartWorkout,
   onStopWorkout,
+  onSkipBurnout,
   exerciseSets,
   activeExerciseId,
 }: SidebarProps) {
@@ -89,6 +91,7 @@ export function Sidebar({
                   onDelete={handleDeleteExercise}
                   onStart={onStartWorkout}
                   onStop={onStopWorkout}
+                  onSkipBurnout={onSkipBurnout}
                   isConnected={isConnected}
                 />
               ))}

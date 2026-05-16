@@ -14,6 +14,7 @@ interface ExerciseCardProps {
   onDelete: (id: string) => void;
   onStart: (config: WorkoutConfig, exerciseId: string) => void;
   onStop: () => void;
+  onSkipBurnout: (exerciseId: string) => void;
   isConnected: boolean;
 }
 
@@ -26,6 +27,7 @@ export function ExerciseCard({
   onDelete,
   onStart,
   onStop,
+  onSkipBurnout,
   isConnected,
 }: ExerciseCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -69,6 +71,8 @@ export function ExerciseCard({
     ? null
     : getSetWeight(config.weight, currentSet);
 
+  const isBurnoutPhase = !isEcho && currentSet > TOTAL_SETS;
+
   const handleStart = () => {
     if (isEcho) {
       onStart(
@@ -110,10 +114,16 @@ export function ExerciseCard({
         {getModeDescription()}
         {" · "}
         <span style={{ color: "#868e96" }}>
-          Set {currentSet}/{TOTAL_SETS}
-          {!isEcho &&
-            currentSet > 1 &&
-            ` · ${effectiveWeight!.toFixed(1)} kg eff`}
+          {isBurnoutPhase ? (
+            <>Burnout · {effectiveWeight!.toFixed(1)} kg eff</>
+          ) : (
+            <>
+              Set {currentSet}/{TOTAL_SETS}
+              {!isEcho &&
+                currentSet > 1 &&
+                ` · ${effectiveWeight!.toFixed(1)} kg eff`}
+            </>
+          )}
         </span>
       </div>
 
@@ -134,31 +144,51 @@ export function ExerciseCard({
         </div>
       )}
 
-      <button
-        className={`exercise-start-btn${isActive ? " active" : ""}`}
-        onClick={isActive ? onStop : handleStart}
-        disabled={!isConnected || (!isActive && hasActiveWorkout)}
-      >
-        {isActive ? (
-          <>
-            <span
-              style={{
-                display: "inline-block",
-                width: "0.6em",
-                height: "0.6em",
-                background: "currentColor",
-                borderRadius: "1px",
-                verticalAlign: "middle",
-                position: "relative",
-                top: "-0.05em",
-              }}
-            />{" "}
-            Stop
-          </>
-        ) : (
-          "▶ Start"
-        )}
-      </button>
+      {isActive ? (
+        <button
+          className="exercise-start-btn active"
+          onClick={onStop}
+          disabled={!isConnected}
+        >
+          <span
+            style={{
+              display: "inline-block",
+              width: "0.6em",
+              height: "0.6em",
+              background: "currentColor",
+              borderRadius: "1px",
+              verticalAlign: "middle",
+              position: "relative",
+              top: "-0.05em",
+            }}
+          />{" "}
+          Stop
+        </button>
+      ) : isBurnoutPhase ? (
+        <div className="exercise-burnout-buttons">
+          <button
+            className="exercise-burnout-btn"
+            onClick={handleStart}
+            disabled={!isConnected || hasActiveWorkout}
+          >
+            🔥 Burnout · {effectiveWeight!.toFixed(1)} kg
+          </button>
+          <button
+            className="exercise-skip-btn"
+            onClick={() => onSkipBurnout(exercise.id)}
+          >
+            Skip →
+          </button>
+        </div>
+      ) : (
+        <button
+          className="exercise-start-btn"
+          onClick={handleStart}
+          disabled={!isConnected || hasActiveWorkout}
+        >
+          ▶ Start
+        </button>
+      )}
     </div>
   );
 }
