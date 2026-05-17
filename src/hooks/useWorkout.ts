@@ -49,7 +49,7 @@ const WARMUP_TARGET_DEFAULT = 3;
 
 export function useWorkout(
   onAutoStop: () => void,
-  onWorkoutComplete: () => void
+  onWorkoutDone: () => void
 ): UseWorkoutReturn {
   const [currentWorkout, setCurrentWorkout] = useState<CurrentWorkout | null>(
     null
@@ -72,6 +72,15 @@ export function useWorkout(
 
   const { workoutHistory, addWorkout, viewWorkoutOnGraph } =
     useWorkoutHistory();
+
+  // Stable ref for completeWorkout (breaks circular dep with useRepCounter)
+  const completeWorkoutRef = useRef<() => void>(() => {});
+
+  // Wrapped callback: completeWorkout + caller's onWorkoutDone
+  const onWorkoutComplete = useCallback(() => {
+    completeWorkoutRef.current();
+    onWorkoutDone();
+  }, [onWorkoutDone]);
 
   const { autoStopProgress, checkAutoStop, resetAutoStop } =
     useAutoStop(useCallback(() => {
@@ -225,6 +234,11 @@ export function useWorkout(
 
     resetWorkout();
   }, [currentWorkout, workingReps, addWorkout, resetWorkout]);
+
+  // Keep ref in sync so onWorkoutComplete can call completeWorkout
+  useLayoutEffect(() => {
+    completeWorkoutRef.current = completeWorkout;
+  }, [completeWorkout]);
 
   return {
     currentWorkout,

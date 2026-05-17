@@ -1,6 +1,6 @@
 // App.tsx - Main application component
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Sidebar,
   LiveWorkoutPanel,
@@ -67,8 +67,6 @@ export function App() {
     });
   }, [exercises]);
 
-  const completeWorkoutRef = useRef<() => void>(() => {});
-
   // Workout hook for state management
   const {
     currentWorkout,
@@ -84,17 +82,9 @@ export function App() {
     handleMonitorSample,
     handleRepNotification,
   } = useWorkout(handleAutoStop, () => {
-    console.log(
-      `[APP-DEBUG] onWorkoutComplete callback fired (advanceSet + completeWorkout)`
-    );
     advanceSet();
-    completeWorkoutRef.current();
     freeze();
   });
-
-  useEffect(() => {
-    completeWorkoutRef.current = completeWorkout;
-  }, [completeWorkout]);
 
   // Handle monitor samples - update chart and workout
   const onMonitorSample = useCallback(
@@ -244,6 +234,7 @@ export function App() {
     }
     setActiveExerciseId(null);
     completeWorkout();
+    freeze();
     try {
       await sendStopCommand();
     } catch (error) {
@@ -251,7 +242,7 @@ export function App() {
         `[ERROR] Failed to stop workout: ${(error as Error).message}`
       );
     }
-  }, [sendStopCommand, completeWorkout, activeExerciseId]);
+  }, [sendStopCommand, completeWorkout, activeExerciseId, freeze]);
 
   // Skip burnout — reset set counter without starting a workout
   const handleSkipBurnout = useCallback((exerciseId: string) => {
