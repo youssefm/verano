@@ -172,17 +172,7 @@ export class ChartManager {
       },
       series: [
         {
-          label: "Time",
-          value: (_u: uPlot, v: number | null): string => {
-            if (v == null) return "-";
-            const date = new Date(v * 1000);
-            return date.toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false,
-            });
-          },
+          show: false,
         },
         {
           label: "Total Load",
@@ -229,28 +219,7 @@ export class ChartManager {
       ],
       axes: [
         {
-          stroke: "#6c757d",
-          grid: {
-            show: true,
-            stroke: "#dee2e6",
-            width: 1,
-          },
-          ticks: {
-            show: true,
-            stroke: "#dee2e6",
-          },
-          values: (_u: uPlot, vals: number[]): string[] => {
-            // Format x-axis timestamps as HH:MM:SS only
-            return vals.map((v) => {
-              const date = new Date(v * 1000);
-              return date.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-                hour12: false,
-              });
-            });
-          },
+          show: false,
         },
         {
           scale: "load",
@@ -340,10 +309,9 @@ export class ChartManager {
     this.startPeriodicUpdates();
   }
 
-  // Freeze the chart (stop updates, keep current data visible)
+  // Freeze the chart (stop updates, show full set)
   freeze(): void {
     this.live = false;
-    // Do one final render so the chart shows the latest data
     if (this.chart && this.loadHistory.length > 0) {
       this.updateChartData();
     }
@@ -427,11 +395,15 @@ export class ChartManager {
     ];
     this.chart!.setData(data);
 
-    // Auto-scroll to show latest data if user hasn't manually panned
-    if (this.currentTimeRange !== null && timestamps.length > 0) {
+    // Show from start of set to now, with a 30s minimum window
+    if (timestamps.length > 0) {
+      const startTime = timestamps[0];
       const latestTime = timestamps[timestamps.length - 1];
-      const minTime = latestTime - this.currentTimeRange;
-      this.chart!.setScale("x", { min: minTime, max: latestTime });
+      const duration = latestTime - startTime;
+      const minWindow = 30;
+      const min = startTime;
+      const max = duration < minWindow ? startTime + minWindow : latestTime;
+      this.chart!.setScale("x", { min, max });
     }
   }
 

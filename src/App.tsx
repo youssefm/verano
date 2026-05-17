@@ -36,7 +36,7 @@ export function App() {
   } = useDevice();
 
   // Chart hook for visualization
-  const { initChart, addData, setTimeRange, clearData, freeze } =
+  const { initChart, addData, clearData, freeze } =
     useChart();
 
   // Auto-stop and workout complete handlers (defined before useWorkout)
@@ -76,10 +76,8 @@ export function App() {
     workingReps,
     warmupTarget,
     targetReps,
-    isJustLiftMode,
     liveStats,
     maxPos,
-    autoStopProgress,
     startWorkout,
     completeWorkout,
     resetWorkout,
@@ -260,11 +258,6 @@ export function App() {
     setExerciseSets((prev) => ({ ...prev, [exerciseId]: 1 }));
   }, []);
 
-  // Set initial chart time range
-  useEffect(() => {
-    setTimeRange(30);
-  }, [setTimeRange]);
-
   // Log startup message
   useEffect(() => {
     console.log("[SUCCESS] Verano Ready");
@@ -301,8 +294,6 @@ export function App() {
                 totalSets={TOTAL_SETS}
                 liveStats={liveStats}
                 maxPos={maxPos}
-                autoStopProgress={autoStopProgress}
-                isJustLiftMode={isJustLiftMode}
               />
             </div>
 

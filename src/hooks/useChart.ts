@@ -7,7 +7,6 @@ import { ChartManager } from "../lib/chart";
 export interface UseChartReturn {
   initChart: (containerId: string) => void;
   addData: (sample: MonitorSample) => void;
-  setTimeRange: (seconds: number | null) => void;
   clearData: () => void;
   freeze: () => void;
 }
@@ -24,10 +23,6 @@ export function useChart(): UseChartReturn {
 
   const addData = useCallback((sample: MonitorSample) => {
     chartManagerRef.current?.addData(sample);
-  }, []);
-
-  const setTimeRange = useCallback((seconds: number | null) => {
-    chartManagerRef.current?.setTimeRange(seconds);
   }, []);
 
   const clearData = useCallback(() => {
@@ -48,7 +43,6 @@ export function useChart(): UseChartReturn {
   return {
     initChart,
     addData,
-    setTimeRange,
     clearData,
     freeze,
   };

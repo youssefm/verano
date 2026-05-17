@@ -12,6 +12,7 @@ import { useRepRanges } from "./useRepRanges";
 import { useAutoStop } from "./useAutoStop";
 import { useRepCounter } from "./useRepCounter";
 import { useWorkoutHistory } from "./useWorkoutHistory";
+import { playWorkoutCompleteGong } from "../lib/sound";
 
 export interface UseWorkoutReturn {
   // Workout state
@@ -73,7 +74,10 @@ export function useWorkout(
     useWorkoutHistory();
 
   const { autoStopProgress, checkAutoStop, resetAutoStop } =
-    useAutoStop(onAutoStop);
+    useAutoStop(useCallback(() => {
+      onAutoStop();
+      onWorkoutComplete();
+    }, [onAutoStop, onWorkoutComplete]));
 
   // Stable refs for repRanges callbacks (defined after useRepCounter but
   // called only at runtime, so forward-referencing is safe)
@@ -200,6 +204,7 @@ export function useWorkout(
         `workingReps=${workingReps}`
     );
     if (currentWorkout) {
+      playWorkoutCompleteGong();
       const endTime = new Date();
       const duration = endTime.getTime() - currentWorkout.startTime.getTime();
       console.log(

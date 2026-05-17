@@ -5,7 +5,6 @@ import type { MonitorSample } from "../lib/types";
 import type { CurrentWorkout } from "../lib/types";
 import {
   playRepSound,
-  playWorkoutCompleteGong,
   playWorkoutStartFanfare,
 } from "../lib/sound";
 
@@ -84,7 +83,6 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
       workingReps >= targetReps
     ) {
       console.log("[SUCCESS] Target reps reached! Auto-completing workout...");
-      playWorkoutCompleteGong();
       onWorkoutComplete();
     }
   }, [workingReps, stopAtTop, isJustLiftMode, targetReps, onWorkoutComplete]);
@@ -192,7 +190,6 @@ export function useRepCounter(deps: RepCounterDeps): UseRepCounterReturn {
               "[SUCCESS] Reached top of final rep! Auto-completing workout..."
             );
             onAutoStop();
-            playWorkoutCompleteGong();
             onWorkoutComplete();
           }
         }

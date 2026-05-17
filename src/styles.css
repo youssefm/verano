@@ -854,7 +854,7 @@ button.secondary {
   cursor: pointer;
   font-size: 0.85em;
   font-weight: 600;
-  flex: 1;
+  flex: 3;
   margin: 0;
   transition: all 0.2s;
 }
@@ -876,7 +876,7 @@ button.secondary {
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 0.75em;
   font-weight: 600;
   margin: 0;
   transition: all 0.2s;

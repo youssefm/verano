@@ -12,8 +12,6 @@ interface LiveWorkoutPanelProps {
   totalSets: number;
   liveStats: LiveStats;
   maxPos: number;
-  autoStopProgress: number;
-  isJustLiftMode: boolean;
 }
 
 const PHASE_COLORS = {
@@ -63,8 +61,6 @@ export function LiveWorkoutPanel({
   totalSets,
   liveStats,
   maxPos,
-  autoStopProgress,
-  isJustLiftMode,
 }: LiveWorkoutPanelProps) {
   const phase = getPhase(
     hasActiveWorkout,
@@ -118,13 +114,13 @@ export function LiveWorkoutPanel({
     target > 0 ? Math.min(reps / target, 1) : phase === "inactive" ? 0 : 1;
   const arcOffset = ARC_CIRCUMFERENCE * (1 - progress);
 
-  // Position bars
-  const barWidthB = Math.min((liveStats.posB / maxPos) * 100, 100);
-  const barWidthA = Math.min((liveStats.posA / maxPos) * 100, 100);
-  const totalLoad = liveStats.loadA + liveStats.loadB;
-
-  // Auto-stop (Just Lift mode)
-  const showAutoStop = isJustLiftMode && autoStopProgress > 0;
+  // Position bars — zero out when inactive
+  const barWidthB =
+    phase === "inactive" ? 0 : Math.min((liveStats.posB / maxPos) * 100, 100);
+  const barWidthA =
+    phase === "inactive" ? 0 : Math.min((liveStats.posA / maxPos) * 100, 100);
+  const totalLoad =
+    phase === "inactive" ? 0 : liveStats.loadA + liveStats.loadB;
 
   return (
     <div className="meadow-panel">
@@ -156,39 +152,6 @@ export function LiveWorkoutPanel({
         </div>
       </div>
 
-      {/* Auto-stop countdown (Just Lift mode only) */}
-      {showAutoStop && (
-        <div className="meadow-autostop">
-          <svg viewBox="0 0 40 40" className="meadow-autostop-ring">
-            <circle
-              cx="20"
-              cy="20"
-              r="16"
-              fill="none"
-              stroke="#dde6da"
-              strokeWidth="3"
-            />
-            <circle
-              cx="20"
-              cy="20"
-              r="16"
-              fill="none"
-              stroke="#e05555"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 16}
-              strokeDashoffset={
-                2 * Math.PI * 16 * (1 - autoStopProgress)
-              }
-              style={{ transition: "stroke-dashoffset 0.1s linear" }}
-            />
-          </svg>
-          <span className="meadow-autostop-text">
-            {Math.ceil((1 - autoStopProgress) * 5)}s
-          </span>
-        </div>
-      )}
-
       <div className="meadow-meters">
         <div className="meadow-meter-row">
           <span className="meadow-meter-label">Left</span>
@@ -199,7 +162,7 @@ export function LiveWorkoutPanel({
             />
           </div>
           <span className="meadow-meter-val">
-            {formatLoad(liveStats.loadB)} kg
+            {formatLoad(phase === "inactive" ? 0 : liveStats.loadB)} kg
           </span>
         </div>
 
@@ -212,7 +175,7 @@ export function LiveWorkoutPanel({
             />
           </div>
           <span className="meadow-meter-val">
-            {formatLoad(liveStats.loadA)} kg
+            {formatLoad(phase === "inactive" ? 0 : liveStats.loadA)} kg
           </span>
         </div>
 
