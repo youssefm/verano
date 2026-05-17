@@ -1,7 +1,5 @@
 // components/index.ts - Export all components
 
-export { PositionBars } from "./PositionBars";
-export { RepCounters } from "./RepCounters";
+export { LiveWorkoutPanel } from "./LiveWorkoutPanel";
 export { LoadChart } from "./LoadChart";
-export { WorkoutHistory } from "./WorkoutHistory";
 export { Sidebar } from "./Sidebar";

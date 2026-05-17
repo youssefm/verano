@@ -3,10 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Sidebar,
-  PositionBars,
-  RepCounters,
+  LiveWorkoutPanel,
   LoadChart,
-  WorkoutHistory,
 } from "./components";
 import { useDevice, useWorkout, useChart } from "./hooks";
 import { ProgramModeNames, EchoLevelNames } from "./lib/modes";
@@ -17,7 +15,6 @@ import { exercisesAtom } from "./lib/atoms";
 import "./styles.css";
 
 export function App() {
-  const [currentTimeRange, setCurrentTimeRange] = useState<number | null>(30);
 
   // Set tracking (non-persistent, resets on refresh)
   const [exerciseSets, setExerciseSets] = useState<Record<string, number>>({});
@@ -39,7 +36,7 @@ export function App() {
   } = useDevice();
 
   // Chart hook for visualization
-  const { initChart, addData, setTimeRange, exportCSV, viewWorkout } =
+  const { initChart, addData, setTimeRange, clearData, freeze } =
     useChart();
 
   // Auto-stop and workout complete handlers (defined before useWorkout)
@@ -79,10 +76,8 @@ export function App() {
     workingReps,
     warmupTarget,
     targetReps,
-    workoutHistory,
     isJustLiftMode,
     liveStats,
-    repRanges,
     maxPos,
     autoStopProgress,
     startWorkout,
@@ -90,13 +85,13 @@ export function App() {
     resetWorkout,
     handleMonitorSample,
     handleRepNotification,
-    viewWorkoutOnGraph,
   } = useWorkout(handleAutoStop, () => {
     console.log(
       `[APP-DEBUG] onWorkoutComplete callback fired (advanceSet + completeWorkout)`
     );
     advanceSet();
     completeWorkoutRef.current();
+    freeze();
   });
 
   useEffect(() => {
@@ -224,6 +219,7 @@ export function App() {
           setActiveSet(currentSet);
         }
         startWorkout(modeName, weightKg, reps, isJustLift);
+        clearData();
         await sendDevice();
       } catch (error) {
         console.error(
@@ -232,7 +228,7 @@ export function App() {
         resetWorkout();
       }
     },
-    [startProgram, startEcho, startWorkout, resetWorkout, exerciseSets]
+    [startProgram, startEcho, startWorkout, resetWorkout, exerciseSets, clearData]
   );
 
   // Stop workout handler
@@ -264,25 +260,10 @@ export function App() {
     setExerciseSets((prev) => ({ ...prev, [exerciseId]: 1 }));
   }, []);
 
-  // Handle viewing workout on graph
-  const handleViewGraph = useCallback(
-    (index: number) => {
-      const workout = viewWorkoutOnGraph(index);
-      if (workout) {
-        viewWorkout(workout);
-      }
-    },
-    [viewWorkoutOnGraph, viewWorkout]
-  );
-
-  // Handle time range change
-  const handleTimeRangeChange = useCallback(
-    (seconds: number | null) => {
-      setCurrentTimeRange(seconds);
-      setTimeRange(seconds);
-    },
-    [setTimeRange]
-  );
+  // Set initial chart time range
+  useEffect(() => {
+    setTimeRange(30);
+  }, [setTimeRange]);
 
   // Log startup message
   useEffect(() => {
@@ -310,10 +291,7 @@ export function App() {
           <div className="live-view-container">
             {/* Live controls card */}
             <div className="content-card">
-              <h2>Live Workout Data</h2>
-
-              {/* Rep Counters */}
-              <RepCounters
+              <LiveWorkoutPanel
                 warmupReps={warmupReps}
                 workingReps={workingReps}
                 warmupTarget={warmupTarget}
@@ -321,12 +299,7 @@ export function App() {
                 hasActiveWorkout={currentWorkout !== null}
                 currentSet={activeSet}
                 totalSets={TOTAL_SETS}
-              />
-
-              {/* Position Visualizer */}
-              <PositionBars
                 liveStats={liveStats}
-                repRanges={repRanges}
                 maxPos={maxPos}
                 autoStopProgress={autoStopProgress}
                 isJustLiftMode={isJustLiftMode}
@@ -335,26 +308,7 @@ export function App() {
 
             {/* Analytics card */}
             <div className="content-card">
-              <div
-                id="graphHistoryContainer"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr",
-                  gap: "20px",
-                }}
-              >
-                <LoadChart
-                  onTimeRangeChange={handleTimeRangeChange}
-                  onExport={exportCSV}
-                  initChart={initChart}
-                  currentTimeRange={currentTimeRange}
-                />
-
-                <WorkoutHistory
-                  workouts={workoutHistory}
-                  onViewGraph={handleViewGraph}
-                />
-              </div>
+              <LoadChart initChart={initChart} />
             </div>
           </div>
         </main>

@@ -328,6 +328,28 @@ export class ChartManager {
     }
   }
 
+  // Clear all data and reset the chart for a new set
+  clearData(): void {
+    this.loadHistory = [];
+    this.eventMarkers = [];
+    this.live = true;
+    if (this.chart) {
+      const emptyData: uPlot.AlignedData = [[], [], [], [], [], []];
+      this.chart.setData(emptyData);
+    }
+    this.startPeriodicUpdates();
+  }
+
+  // Freeze the chart (stop updates, keep current data visible)
+  freeze(): void {
+    this.live = false;
+    // Do one final render so the chart shows the latest data
+    if (this.chart && this.loadHistory.length > 0) {
+      this.updateChartData();
+    }
+    this.stopPeriodicUpdates();
+  }
+
   // Add new data point to chart
   addData(sample: MonitorSample): void {
     // Add to load history

@@ -1,15 +1,15 @@
 // hooks/useChart.ts - Hook for managing chart state
 
 import { useRef, useCallback, useEffect } from "react";
-import type { MonitorSample, Workout } from "../lib/chart";
+import type { MonitorSample } from "../lib/chart";
 import { ChartManager } from "../lib/chart";
 
 export interface UseChartReturn {
   initChart: (containerId: string) => void;
   addData: (sample: MonitorSample) => void;
   setTimeRange: (seconds: number | null) => void;
-  exportCSV: () => void;
-  viewWorkout: (workout: Workout) => void;
+  clearData: () => void;
+  freeze: () => void;
 }
 
 export function useChart(): UseChartReturn {
@@ -30,12 +30,12 @@ export function useChart(): UseChartReturn {
     chartManagerRef.current?.setTimeRange(seconds);
   }, []);
 
-  const exportCSV = useCallback(() => {
-    chartManagerRef.current?.exportCSV();
+  const clearData = useCallback(() => {
+    chartManagerRef.current?.clearData();
   }, []);
 
-  const viewWorkout = useCallback((workout: Workout) => {
-    chartManagerRef.current?.viewWorkout(workout);
+  const freeze = useCallback(() => {
+    chartManagerRef.current?.freeze();
   }, []);
 
   // Cleanup on unmount
@@ -49,7 +49,7 @@ export function useChart(): UseChartReturn {
     initChart,
     addData,
     setTimeRange,
-    exportCSV,
-    viewWorkout,
+    clearData,
+    freeze,
   };
 }

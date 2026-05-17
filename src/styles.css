@@ -71,11 +71,15 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .live-view-container {
-  max-width: 1200px;
+  max-width: 880px;
   margin: 0 auto;
+  width: 100%;
 }
 
 .content-card {
@@ -381,6 +385,166 @@ button.secondary {
   font-size: 1.5em;
   font-weight: 700;
   color: #212529;
+}
+
+/* Meadow live workout panel */
+.meadow-panel {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 400px;
+  margin: 0 auto 20px;
+}
+
+.meadow-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 5px 16px;
+  border-radius: 20px;
+  display: inline-block;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.meadow-arc-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+}
+
+.meadow-arc-wrap svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.meadow-arc-bg {
+  fill: none;
+  stroke: #dde6da;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.meadow-arc-fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease, stroke 0.3s;
+}
+
+.meadow-arc-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.meadow-arc-reps {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2a3f2a;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.meadow-arc-set {
+  font-size: 0.8rem;
+  color: #7a8a74;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.meadow-autostop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meadow-autostop-ring {
+  width: 28px;
+  height: 28px;
+  transform: rotate(-90deg);
+}
+
+.meadow-autostop-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e05555;
+}
+
+.meadow-meters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.meadow-meter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meadow-meter-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7f65;
+  min-width: 40px;
+}
+
+.meadow-meter-track {
+  flex: 1;
+  height: 12px;
+  background: #e9ecef;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.meadow-meter-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.1s linear;
+}
+
+.meadow-meter-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #212529;
+  white-space: nowrap;
+  min-width: 44px;
+  text-align: right;
+}
+
+.meadow-total-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meadow-total-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6c757d;
+  min-width: 40px;
+}
+
+.meadow-total-spacer {
+  display: none;
+}
+
+.meadow-total-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #212529;
+  white-space: nowrap;
+  min-width: 44px;
+  text-align: right;
+  margin-left: auto;
 }
 
 /* Load graph */
