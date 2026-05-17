@@ -565,6 +565,10 @@ button.secondary {
   font-size: 13px;
 }
 
+.u-legend .u-series:first-child {
+  display: none;
+}
+
 .u-series:hover {
   cursor: pointer;
 }
