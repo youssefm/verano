@@ -57,7 +57,7 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <h1>Verano</h1>
+        <h1>🌿 Verano <span style={{ opacity: 0 }}>🌿</span></h1>
       </div>
 
       <div className="sidebar-content">
