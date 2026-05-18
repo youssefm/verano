@@ -176,7 +176,7 @@ export class ChartManager {
         },
         {
           label: "Total Load",
-          stroke: "#667eea",
+          stroke: "#6b8f71",
           width: 1.5,
           scale: "load",
           value: (_u: uPlot, v: number | null): string =>

@@ -58,7 +58,6 @@ export function Sidebar({
     <aside className="sidebar">
       <div className="sidebar-header">
         <h1>Verano</h1>
-        <p>Web Bluetooth Interface</p>
       </div>
 
       <div className="sidebar-content">
