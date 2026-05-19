@@ -859,9 +859,12 @@ button.secondary {
   cursor: pointer;
   font-size: 0.85em;
   font-weight: 600;
-  flex: 3;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
   margin: 0;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .exercise-burnout-btn:hover:not(:disabled) {
@@ -883,6 +886,8 @@ button.secondary {
   cursor: pointer;
   font-size: 0.75em;
   font-weight: 600;
+  flex: 0 0 auto;
+  width: auto;
   margin: 0;
   transition: all 0.2s;
   white-space: nowrap;
