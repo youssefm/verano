@@ -47,6 +47,7 @@ export class ChartManager {
   updateFrequency: number;
   loadUnit: LoadUnitConfig;
   eventMarkers: EventMarker[];
+  resizeObserver: ResizeObserver | null;
 
   constructor(containerId: string) {
     this.containerId = containerId;
@@ -63,15 +64,17 @@ export class ChartManager {
       toDisplay: (value: number): number => value,
     };
     this.eventMarkers = []; // Array of {time: Date, label: string, color: string}
+    this.resizeObserver = null;
   }
 
-  // Initialize uPlot chart
+  // Initialize uPlot chart (safe to call again after the container remounts)
   init(): boolean {
     const container = document.getElementById(this.containerId);
     if (!container) {
       console.warn("Chart container not found yet, will initialize later");
       return false;
     }
+    this.destroy();
 
     // uPlot expects data in this format: [timestamps, series1, series2, ...]
     const data: uPlot.AlignedData = [
@@ -133,7 +136,7 @@ export class ChartManager {
 
     const opts: uPlot.Options = {
       width: container.clientWidth || 800,
-      height: 300,
+      height: this.plotHeight(container, 0),
       plugins: [eventMarkersPlugin],
       cursor: {
         drag: {
@@ -261,20 +264,43 @@ export class ChartManager {
 
     this.chart = new uPlot(opts, data, container);
 
-    // Handle window resize
-    window.addEventListener("resize", () => {
-      if (this.chart && container) {
-        this.chart.setSize({
-          width: container.clientWidth,
-          height: 300,
-        });
-      }
-    });
+    // Fill the container: plot height = container height minus the legend
+    const fitToContainer = (): void => {
+      if (!this.chart) return;
+      const legend = this.chart.root.querySelector<HTMLElement>(".u-legend");
+      this.chart.setSize({
+        width: container.clientWidth,
+        height: this.plotHeight(container, legend?.offsetHeight ?? 0),
+      });
+    };
+    this.resizeObserver = new ResizeObserver(fitToContainer);
+    this.resizeObserver.observe(container);
+    fitToContainer();
 
-    // Start periodic updates
-    this.startPeriodicUpdates();
+    // Show whatever set is already recorded (e.g. after navigating back)
+    if (this.loadHistory.length > 0) {
+      this.updateChartData();
+    }
+    if (this.live) {
+      this.startPeriodicUpdates();
+    }
 
     return true;
+  }
+
+  // Tear down the uPlot instance (data is kept for the next init)
+  destroy(): void {
+    this.stopPeriodicUpdates();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    this.chart?.destroy();
+    this.chart = null;
+  }
+
+  private plotHeight(container: HTMLElement, legendHeight: number): number {
+    const minimumHeight = 120;
+    const available = container.clientHeight - legendHeight;
+    return available > minimumHeight ? available : minimumHeight;
   }
 
   // Start periodic chart updates
@@ -320,6 +346,10 @@ export class ChartManager {
 
   // Add new data point to chart
   addData(sample: MonitorSample): void {
+    // A frozen chart shows a finished set; the device keeps polling between
+    // sets, and those idle samples must not be appended to that set.
+    if (!this.live) return;
+
     // Add to load history
     this.loadHistory.push({
       timestamp: sample.timestamp,
@@ -360,6 +390,7 @@ export class ChartManager {
 
   // Update chart with all data and trim time scale to current time range.
   updateChartData(): void {
+    if (!this.chart) return;
     // Create fresh arrays each time
     const timestamps: number[] = [];
     const totalLoads: number[] = [];
@@ -393,7 +424,7 @@ export class ChartManager {
       positionsB,
       positionsA,
     ];
-    this.chart!.setData(data);
+    this.chart.setData(data);
 
     // Show from start of set to now, with a 30s minimum window
     if (timestamps.length > 0) {
@@ -403,7 +434,7 @@ export class ChartManager {
       const minWindow = 30;
       const min = startTime;
       const max = duration < minWindow ? startTime + minWindow : latestTime;
-      this.chart!.setScale("x", { min, max });
+      this.chart.setScale("x", { min, max });
     }
   }
 

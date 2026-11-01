@@ -1,194 +1,99 @@
-// components/ExerciseCard.tsx - Compact exercise card with quick adjust controls
+// components/ExerciseCard.tsx - Catalog tile for one exercise
 
-import { useState } from "react";
-import type { Exercise, WorkoutConfig } from "../lib/types";
-import { ProgramModeNames, EchoLevelNames } from "../lib/modes";
-import { TOTAL_SETS, getSetWeight } from "../lib/sets";
+import { useEffect, useState } from "react";
+import type { Exercise, ExerciseProgress } from "../lib/types";
+import {
+  getCurrentSet,
+  getSetNumbers,
+  getTotalReps,
+  isBurnoutSet,
+} from "../lib/sets";
+import { describeSettings, modeName } from "../lib/exerciseLabels";
 
 interface ExerciseCardProps {
   exercise: Exercise;
-  currentSet: number;
-  isActive: boolean;
-  hasActiveWorkout: boolean;
-  onUpdate: (exercise: Exercise) => void;
+  progress: ExerciseProgress;
+  onOpen: (id: string) => void;
   onDelete: (id: string) => void;
-  onStart: (config: WorkoutConfig, exerciseId: string) => void;
-  onStop: () => void;
-  onSkipBurnout: (exerciseId: string) => void;
-  isConnected: boolean;
+}
+
+type ProgressStatus = "done" | "in-progress" | "not-started";
+
+function progressStatus(progress: ExerciseProgress): ProgressStatus {
+  if (progress.isDone) return "done";
+  return progress.completedSets.length > 0 ? "in-progress" : "not-started";
+}
+
+function statusText(progress: ExerciseProgress): string {
+  const status = progressStatus(progress);
+  if (status === "done") return `✓ Done · ${getTotalReps(progress)} reps`;
+  if (status === "not-started") return "Not started";
+  const currentSet = getCurrentSet(progress);
+  return isBurnoutSet(currentSet) ? "Burnout next" : `Set ${currentSet} next`;
 }
 
 export function ExerciseCard({
   exercise,
-  currentSet,
-  isActive,
-  hasActiveWorkout,
-  onUpdate,
+  progress,
+  onOpen,
   onDelete,
-  onStart,
-  onStop,
-  onSkipBurnout,
-  isConnected,
 }: ExerciseCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { config } = exercise;
-  const isEcho = config.type === "echo";
+  const status = progressStatus(progress);
 
-  const getModeDescription = () => {
-    if (isEcho) {
-      const parts = [
-        `Echo ${EchoLevelNames[config.level]}`,
-        `${config.eccentricPct}% ecc`,
-      ];
-      if (!config.isJustLift) parts.push(`${config.targetReps} reps`);
-      if (config.isJustLift) parts.push("Just Lift");
-      return parts.join(" · ");
-    } else {
-      const parts = [ProgramModeNames[config.mode]];
-      if (!config.isJustLift) parts.push(`${config.reps} reps`);
-      if (config.progression !== 0) {
-        parts.push(
-          `${config.progression > 0 ? "+" : ""}${config.progression} kg/rep`
-        );
-      }
-      if (config.isJustLift) parts.push("Just Lift");
-      return parts.join(" · ");
-    }
-  };
-
-  const weight = isEcho ? null : config.weight;
-
-  const adjustWeight = (delta: number) => {
-    if (isEcho) return;
-    const newWeight = Math.max(
-      0,
-      Math.min(100, +(config.weight + delta).toFixed(1))
-    );
-    onUpdate({ ...exercise, config: { ...config, weight: newWeight } });
-  };
-
-  const effectiveWeight = isEcho
-    ? null
-    : getSetWeight(config.weight, currentSet);
-
-  const isBurnoutPhase = !isEcho && currentSet > TOTAL_SETS;
-
-  const handleStart = () => {
-    if (isEcho) {
-      onStart(
-        { ...config, targetReps: config.isJustLift ? 0 : config.targetReps },
-        exercise.id
-      );
-    } else {
-      onStart(
-        { ...config, reps: config.isJustLift ? 0 : config.reps },
-        exercise.id
-      );
-    }
-  };
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(false), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
 
   const handleDeleteClick = () => {
-    if (confirmDelete) {
-      onDelete(exercise.id);
-    } else {
-      setConfirmDelete(true);
-      setTimeout(() => setConfirmDelete(false), 3000);
-    }
+    if (confirmDelete) onDelete(exercise.id);
+    else setConfirmDelete(true);
   };
 
-  const showWeight = !isEcho;
-
   return (
-    <div className="exercise-card">
-      <div className="exercise-header">
-        <div className="exercise-name">{exercise.name}</div>
-        <button
-          className={`exercise-delete ${confirmDelete ? "confirming" : ""}`}
-          onClick={handleDeleteClick}
-          title={confirmDelete ? "Click again to confirm" : "Delete exercise"}
-        >
-          {confirmDelete ? "Confirm?" : "✕"}
-        </button>
-      </div>
-      <div className="exercise-mode">
-        {getModeDescription()}
-        {" · "}
-        <span style={{ color: "#868e96" }}>
-          {isBurnoutPhase ? (
-            <>Burnout · {effectiveWeight!.toFixed(1)} kg eff</>
+    <div className={`exercise-tile-wrap ${status}`}>
+      <button className="exercise-tile" onClick={() => onOpen(exercise.id)}>
+        <div className="tile-name">{exercise.name}</div>
+        <span className={`mode-tag ${config.type}`}>{modeName(exercise)}</span>
+        <div className="tile-description">{describeSettings(exercise)}</div>
+        <div className="tile-weight">
+          {config.type === "echo" ? (
+            <>
+              {config.eccentricPct}
+              <small>% eccentric</small>
+            </>
           ) : (
             <>
-              Set {currentSet}/{TOTAL_SETS}
-              {!isEcho &&
-                currentSet > 1 &&
-                ` · ${effectiveWeight!.toFixed(1)} kg eff`}
+              {config.weight.toFixed(1)}
+              <small>kg / cable</small>
             </>
           )}
-        </span>
-      </div>
-
-      {showWeight && (
-        <div className="exercise-adjusters">
-          <div className="adjuster-row">
-            <span className="adjuster-label">Weight</span>
-            <div className="adjuster-controls">
-              <button className="adj-btn" onClick={() => adjustWeight(-0.1)}>
-                −
-              </button>
-              <span className="adj-value">{weight!.toFixed(1)} kg</span>
-              <button className="adj-btn" onClick={() => adjustWeight(0.1)}>
-                +
-              </button>
-            </div>
-          </div>
         </div>
-      )}
-
-      {isActive ? (
-        <button
-          className="exercise-start-btn active"
-          onClick={onStop}
-          disabled={!isConnected}
-        >
-          <span
-            style={{
-              display: "inline-block",
-              width: "0.6em",
-              height: "0.6em",
-              background: "currentColor",
-              borderRadius: "1px",
-              verticalAlign: "middle",
-              position: "relative",
-              top: "-0.05em",
-            }}
-          />{" "}
-          Stop
-        </button>
-      ) : isBurnoutPhase ? (
-        <div className="exercise-burnout-buttons">
-          <button
-            className="exercise-burnout-btn"
-            onClick={handleStart}
-            disabled={!isConnected || hasActiveWorkout}
-          >
-            🔥 Burnout · {effectiveWeight!.toFixed(1)} kg
-          </button>
-          <button
-            className="exercise-skip-btn"
-            onClick={() => onSkipBurnout(exercise.id)}
-          >
-            Skip →
-          </button>
+        <div className="tile-footer">
+          <span className="set-pips" aria-hidden="true">
+            {getSetNumbers(exercise).map((set) => (
+              <i
+                key={set}
+                className={[
+                  isBurnoutSet(set) ? "burnout" : "",
+                  set <= progress.completedSets.length ? "complete" : "",
+                ].join(" ")}
+              />
+            ))}
+          </span>
+          <span className="tile-status">{statusText(progress)}</span>
         </div>
-      ) : (
-        <button
-          className="exercise-start-btn"
-          onClick={handleStart}
-          disabled={!isConnected || hasActiveWorkout}
-        >
-          ▶ Start
-        </button>
-      )}
+      </button>
+      <button
+        className={`tile-delete ${confirmDelete ? "confirming" : ""}`}
+        onClick={handleDeleteClick}
+        title={confirmDelete ? "Click again to confirm" : "Delete exercise"}
+      >
+        {confirmDelete ? "Delete?" : "✕"}
+      </button>
     </div>
   );
 }

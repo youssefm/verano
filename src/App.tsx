@@ -1,26 +1,48 @@
 // App.tsx - Main application component
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
-  Sidebar,
+  AppBar,
+  ExerciseCatalog,
+  ExercisePage,
   LiveWorkoutPanel,
   LoadChart,
 } from "./components";
 import { useDevice, useWorkout, useChart } from "./hooks";
 import { ProgramModeNames, EchoLevelNames } from "./lib/modes";
-import type { WorkoutConfig } from "./lib/types";
-import { TOTAL_SETS, getSetWeight } from "./lib/sets";
+import type { Workout, WorkoutConfig, ExerciseProgress } from "./lib/types";
+import {
+  EMPTY_PROGRESS,
+  TOTAL_SETS,
+  isBurnoutSet,
+  isOpenEndedSet,
+  getCurrentSet,
+  getSetWeight,
+  recordCompletedSet,
+} from "./lib/sets";
 import { useAtomValue } from "jotai";
 import { exercisesAtom } from "./lib/atoms";
 import "./styles.css";
 
 export function App() {
-
-  // Set tracking (non-persistent, resets on refresh)
-  const [exerciseSets, setExerciseSets] = useState<Record<string, number>>({});
-  const [activeSet, setActiveSet] = useState(1);
-  const [activeExerciseId, setActiveExerciseId] = useState<string | null>(null);
+  // Per-exercise set progress (non-persistent, resets on refresh)
+  const [progressByExercise, setProgressByExercise] = useState<
+    Record<string, ExerciseProgress>
+  >({});
+  // Which exercise page is open (null = catalog)
+  const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
+  // Exercise whose set is running. A ref, because sets finish from device
+  // callbacks; the open exercise is always the running one, since navigation
+  // is locked while a set runs.
+  const activeExerciseIdRef = useRef<string | null>(null);
+  // Exercise whose data the chart currently holds
+  const chartExerciseIdRef = useRef<string | null>(null);
   const exercises = useAtomValue(exercisesAtom);
+
+  const getProgress = useCallback(
+    (exerciseId: string) => progressByExercise[exerciseId] ?? EMPTY_PROGRESS,
+    [progressByExercise]
+  );
 
   // Device hook for Bluetooth connection
   const {
@@ -36,36 +58,43 @@ export function App() {
   } = useDevice();
 
   // Chart hook for visualization
-  const { initChart, addData, clearData, freeze } =
-    useChart();
+  const { initChart, destroyChart, addData, clearData, freeze } = useChart();
 
-  // Auto-stop and workout complete handlers (defined before useWorkout)
   const handleAutoStop = useCallback(() => {
     void sendStopCommand().catch(() => {
       // Error already logged in sendStopCommand
     });
   }, [sendStopCommand]);
 
-  // Advance to next set for the active exercise
-  const advanceSet = useCallback(() => {
-    setActiveExerciseId((exId) => {
-      if (exId) {
-        setExerciseSets((prev) => {
-          const current = prev[exId] || 1;
-          const exercise = exercises.find((e) => e.id === exId);
-          const isProgram = exercise?.config.type === "program";
-          const next =
-            current < TOTAL_SETS
-              ? current + 1
-              : isProgram && current === TOTAL_SETS
-                ? TOTAL_SETS + 1
-                : 1;
-          return { ...prev, [exId]: next };
-        });
+  // Record a finished set against its exercise
+  const recordSet = useCallback(
+    (exerciseId: string, savedWorkout: Workout) => {
+      const exercise = exercises.find((ex) => ex.id === exerciseId);
+      if (!exercise) return;
+      setProgressByExercise((prev) => ({
+        ...prev,
+        [exerciseId]: recordCompletedSet(
+          exercise,
+          prev[exerciseId] ?? EMPTY_PROGRESS,
+          { reps: savedWorkout.reps, weightKg: savedWorkout.weightKg }
+        ),
+      }));
+    },
+    [exercises]
+  );
+
+  // A set finished on its own (target reps reached or Just Lift auto-stop)
+  const handleWorkoutDone = useCallback(
+    (savedWorkout: Workout | null) => {
+      const exerciseId = activeExerciseIdRef.current;
+      if (exerciseId && savedWorkout) {
+        recordSet(exerciseId, savedWorkout);
       }
-      return null;
-    });
-  }, [exercises]);
+      activeExerciseIdRef.current = null;
+      freeze();
+    },
+    [recordSet, freeze]
+  );
 
   // Workout hook for state management
   const {
@@ -81,10 +110,9 @@ export function App() {
     resetWorkout,
     handleMonitorSample,
     handleRepNotification,
-  } = useWorkout(handleAutoStop, () => {
-    advanceSet();
-    freeze();
-  });
+  } = useWorkout(handleAutoStop, handleWorkoutDone);
+
+  const isSetRunning = currentWorkout !== null;
 
   // Handle monitor samples - update chart and workout
   const onMonitorSample = useCallback(
@@ -108,9 +136,8 @@ export function App() {
 
   // Start workout handler
   const handleStartWorkout = useCallback(
-    async (config: WorkoutConfig, exerciseId?: string) => {
-      // Determine current set and effective weight
-      const currentSet = exerciseId ? exerciseSets[exerciseId] || 1 : 1;
+    async (config: WorkoutConfig, exerciseId: string) => {
+      const currentSet = getCurrentSet(getProgress(exerciseId));
 
       let modeName: string;
       let weightKg: number;
@@ -141,7 +168,7 @@ export function App() {
           return;
         }
 
-        const isBurnout = currentSet > TOTAL_SETS;
+        const isBurnout = isBurnoutSet(currentSet);
         if (isBurnout) {
           isJustLift = true;
           reps = 0;
@@ -202,10 +229,7 @@ export function App() {
       }
 
       try {
-        if (exerciseId) {
-          setActiveExerciseId(exerciseId);
-          setActiveSet(currentSet);
-        }
+        activeExerciseIdRef.current = exerciseId;
         startWorkout(modeName, weightKg, reps, isJustLift);
         clearData();
         await sendDevice();
@@ -213,27 +237,39 @@ export function App() {
         console.error(
           `[ERROR] Failed to start workout: ${(error as Error).message}`
         );
+        activeExerciseIdRef.current = null;
         resetWorkout();
+        freeze();
       }
     },
-    [startProgram, startEcho, startWorkout, resetWorkout, exerciseSets, clearData]
+    [
+      startProgram,
+      startEcho,
+      startWorkout,
+      resetWorkout,
+      getProgress,
+      clearData,
+      freeze,
+    ]
   );
 
   // Stop workout handler
   const handleStop = useCallback(async () => {
-    // Manual stop — save workout but don't advance the set
-    // (except burnout, which always wraps back to set 1)
+    // Manual stop counts an open-ended set (Just Lift, burnout, no rep
+    // target) — that's how those sets end. A set with a rep target that is
+    // stopped early isn't counted, so the user redoes it.
     console.log(`[APP-DEBUG] handleStop (manual stop) called`);
-    if (activeExerciseId) {
-      setExerciseSets((prev) => {
-        if ((prev[activeExerciseId] || 1) > TOTAL_SETS) {
-          return { ...prev, [activeExerciseId]: 1 };
-        }
-        return prev;
-      });
+    const exerciseId = activeExerciseIdRef.current;
+    const exercise = exercises.find((ex) => ex.id === exerciseId);
+    const savedWorkout = completeWorkout();
+    if (
+      exercise &&
+      savedWorkout &&
+      isOpenEndedSet(exercise, getCurrentSet(getProgress(exercise.id)))
+    ) {
+      recordSet(exercise.id, savedWorkout);
     }
-    setActiveExerciseId(null);
-    completeWorkout();
+    activeExerciseIdRef.current = null;
     freeze();
     try {
       await sendStopCommand();
@@ -242,59 +278,96 @@ export function App() {
         `[ERROR] Failed to stop workout: ${(error as Error).message}`
       );
     }
-  }, [sendStopCommand, completeWorkout, activeExerciseId, freeze]);
+  }, [
+    sendStopCommand,
+    completeWorkout,
+    exercises,
+    getProgress,
+    recordSet,
+    freeze,
+  ]);
 
-  // Skip burnout — reset set counter without starting a workout
   const handleSkipBurnout = useCallback((exerciseId: string) => {
-    setExerciseSets((prev) => ({ ...prev, [exerciseId]: 1 }));
+    setProgressByExercise((prev) => ({
+      ...prev,
+      [exerciseId]: {
+        ...(prev[exerciseId] ?? EMPTY_PROGRESS),
+        isDone: true,
+        skippedBurnout: true,
+      },
+    }));
   }, []);
+
+  const handleOpenExercise = useCallback(
+    (exerciseId: string) => {
+      // Keep this exercise's last set on the chart; otherwise start fresh
+      // (live, so the cables show before the first set).
+      if (chartExerciseIdRef.current !== exerciseId) {
+        clearData();
+        chartExerciseIdRef.current = exerciseId;
+      }
+      setOpenExerciseId(exerciseId);
+    },
+    [clearData]
+  );
+
+  const handleShowCatalog = useCallback(() => {
+    if (isSetRunning) return;
+    setOpenExerciseId(null);
+  }, [isSetRunning]);
 
   // Log startup message
   useEffect(() => {
     console.log("[SUCCESS] Verano Ready");
   }, []);
 
+  const openExercise = exercises.find((ex) => ex.id === openExerciseId);
+
   return (
-    <>
-      <div className="app-container">
-        {/* Sidebar */}
-        <Sidebar
+    <div className="app-shell">
+      <AppBar
+        exerciseName={openExercise?.name}
+        canNavigate={!isSetRunning}
+        onShowCatalog={handleShowCatalog}
+        isConnected={isConnected}
+        isConnecting={isConnecting}
+        onConnect={connect}
+        onDisconnect={disconnect}
+      />
+
+      {openExercise ? (
+        <ExercisePage
+          exercise={openExercise}
+          progress={getProgress(openExercise.id)}
           isConnected={isConnected}
-          isConnecting={isConnecting}
-          onConnect={connect}
-          onDisconnect={disconnect}
-          onStartWorkout={handleStartWorkout}
-          onStopWorkout={handleStop}
-          onSkipBurnout={handleSkipBurnout}
-          exerciseSets={exerciseSets}
-          activeExerciseId={activeExerciseId}
+          isRunning={isSetRunning}
+          onStart={(config) => void handleStartWorkout(config, openExercise.id)}
+          onStop={() => void handleStop()}
+          onSkipBurnout={() => handleSkipBurnout(openExercise.id)}
+          onBack={handleShowCatalog}
+          livePanel={
+            <LiveWorkoutPanel
+              warmupReps={warmupReps}
+              workingReps={workingReps}
+              warmupTarget={warmupTarget}
+              targetReps={targetReps}
+              hasActiveWorkout={isSetRunning}
+              currentSet={getCurrentSet(getProgress(openExercise.id))}
+              totalSets={TOTAL_SETS}
+              liveStats={liveStats}
+              maxPos={maxPos}
+            />
+          }
+          chart={
+            <LoadChart initChart={initChart} destroyChart={destroyChart} />
+          }
         />
-
-        {/* Main content */}
-        <main className="main-content">
-          <div className="live-view-container">
-            {/* Live controls card */}
-            <div className="content-card">
-              <LiveWorkoutPanel
-                warmupReps={warmupReps}
-                workingReps={workingReps}
-                warmupTarget={warmupTarget}
-                targetReps={targetReps}
-                hasActiveWorkout={currentWorkout !== null}
-                currentSet={activeSet}
-                totalSets={TOTAL_SETS}
-                liveStats={liveStats}
-                maxPos={maxPos}
-              />
-            </div>
-
-            {/* Analytics card */}
-            <div className="content-card">
-              <LoadChart initChart={initChart} />
-            </div>
-          </div>
-        </main>
-      </div>
-    </>
+      ) : (
+        <ExerciseCatalog
+          getProgress={getProgress}
+          onOpenExercise={handleOpenExercise}
+        />
+      )}
+    </div>
   );
 }

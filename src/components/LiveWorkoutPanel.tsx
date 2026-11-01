@@ -101,14 +101,6 @@ export function LiveWorkoutPanel({
     target = targetReps;
   }
 
-  // Set display
-  const setDisplay =
-    hasActiveWorkout && phase !== "warmup"
-      ? currentSet > totalSets
-        ? "Burnout"
-        : `Set ${currentSet} / ${totalSets}`
-      : null;
-
   // Arc progress
   const progress =
     target > 0 ? Math.min(reps / target, 1) : phase === "inactive" ? 0 : 1;
@@ -148,7 +140,6 @@ export function LiveWorkoutPanel({
           >
             {repDisplay}
           </div>
-          {setDisplay && <div className="meadow-arc-set">{setDisplay}</div>}
         </div>
       </div>
 

@@ -31,19 +31,21 @@ export function ConnectionSection({
   const label = isConnecting
     ? "Connecting…"
     : isConnected
-      ? "Disconnect"
-      : "Connect";
+      ? "Connected"
+      : "Connect trainer";
 
   return (
-    <div className="section connection-section">
-      <button
-        className={buttonClass}
-        onClick={handleClick}
-        disabled={isConnecting}
-      >
-        <span className="conn-dot" />
-        {label}
-      </button>
-    </div>
+    <button
+      className={buttonClass}
+      onClick={handleClick}
+      disabled={isConnecting}
+      aria-label={isConnected ? "Disconnect trainer" : undefined}
+      title={
+        isConnected ? "Trainer connected — click to disconnect" : undefined
+      }
+    >
+      <span className="conn-dot" />
+      <span className="conn-label">{label}</span>
+    </button>
   );
 }

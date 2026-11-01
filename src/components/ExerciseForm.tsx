@@ -58,10 +58,14 @@ export function ExerciseForm({ onSave, onCancel }: ExerciseFormProps) {
       />
 
       <div className="exercise-form-actions">
-        <button className="cancel-btn" onClick={onCancel}>
+        <button className="button-ghost" onClick={onCancel}>
           Cancel
         </button>
-        <button onClick={handleSave} disabled={!name.trim()}>
+        <button
+          className="button-primary"
+          onClick={handleSave}
+          disabled={!name.trim()}
+        >
           Save Exercise
         </button>
       </div>

@@ -59,6 +59,21 @@ export interface Exercise {
   config: WorkoutConfig;
 }
 
+/** A finished set, as actually lifted. */
+export interface CompletedSet {
+  reps: number;
+  /** Per-cable weight used for the set (0 for Echo). */
+  weightKg: number;
+}
+
+/** In-memory progress through one exercise's sets (resets on refresh). */
+export interface ExerciseProgress {
+  /** Finished sets in order (index 0 = set 1). */
+  completedSets: CompletedSet[];
+  isDone: boolean;
+  skippedBurnout: boolean;
+}
+
 export interface RepRanges {
   minRepPosA: number | null;
   maxRepPosA: number | null;

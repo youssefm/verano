@@ -6,6 +6,7 @@ import { ChartManager } from "../lib/chart";
 
 export interface UseChartReturn {
   initChart: (containerId: string) => void;
+  destroyChart: () => void;
   addData: (sample: MonitorSample) => void;
   clearData: () => void;
   freeze: () => void;
@@ -19,6 +20,10 @@ export function useChart(): UseChartReturn {
       chartManagerRef.current = new ChartManager(containerId);
     }
     chartManagerRef.current.init();
+  }, []);
+
+  const destroyChart = useCallback(() => {
+    chartManagerRef.current?.destroy();
   }, []);
 
   const addData = useCallback((sample: MonitorSample) => {
@@ -36,12 +41,13 @@ export function useChart(): UseChartReturn {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      chartManagerRef.current?.stopPeriodicUpdates();
+      chartManagerRef.current?.destroy();
     };
   }, []);
 
   return {
     initChart,
+    destroyChart,
     addData,
     clearData,
     freeze,

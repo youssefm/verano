@@ -38,7 +38,8 @@ export interface UseWorkoutReturn {
     reps: number,
     isJustLift: boolean
   ) => void;
-  completeWorkout: () => void;
+  /** Save the current workout and reset; returns the saved workout, if any. */
+  completeWorkout: () => Workout | null;
   resetWorkout: () => void;
   handleMonitorSample: (sample: MonitorSample) => void;
   handleRepNotification: (data: Uint8Array) => void;
@@ -49,7 +50,7 @@ const WARMUP_TARGET_DEFAULT = 3;
 
 export function useWorkout(
   onAutoStop: () => void,
-  onWorkoutDone: () => void
+  onWorkoutDone: (savedWorkout: Workout | null) => void
 ): UseWorkoutReturn {
   const [currentWorkout, setCurrentWorkout] = useState<CurrentWorkout | null>(
     null
@@ -74,19 +75,20 @@ export function useWorkout(
     useWorkoutHistory();
 
   // Stable ref for completeWorkout (breaks circular dep with useRepCounter)
-  const completeWorkoutRef = useRef<() => void>(() => {});
+  const completeWorkoutRef = useRef<() => Workout | null>(() => null);
 
   // Wrapped callback: completeWorkout + caller's onWorkoutDone
   const onWorkoutComplete = useCallback(() => {
-    completeWorkoutRef.current();
-    onWorkoutDone();
+    const savedWorkout = completeWorkoutRef.current();
+    onWorkoutDone(savedWorkout);
   }, [onWorkoutDone]);
 
-  const { autoStopProgress, checkAutoStop, resetAutoStop } =
-    useAutoStop(useCallback(() => {
+  const { autoStopProgress, checkAutoStop, resetAutoStop } = useAutoStop(
+    useCallback(() => {
       onAutoStop();
       onWorkoutComplete();
-    }, [onAutoStop, onWorkoutComplete]));
+    }, [onAutoStop, onWorkoutComplete])
+  );
 
   // Stable refs for repRanges callbacks (defined after useRepCounter but
   // called only at runtime, so forward-referencing is safe)
@@ -207,11 +209,12 @@ export function useWorkout(
     );
   }, [resetCounters, resetRanges, resetAutoStop, setWorkoutActive]);
 
-  const completeWorkout = useCallback(() => {
+  const completeWorkout = useCallback((): Workout | null => {
     console.log(
       `[WORKOUT-DEBUG] completeWorkout called. currentWorkout=${!!currentWorkout}, ` +
         `workingReps=${workingReps}`
     );
+    let savedWorkout: Workout | null = null;
     if (currentWorkout) {
       playWorkoutCompleteGong();
       const endTime = new Date();
@@ -221,7 +224,7 @@ export function useWorkout(
           `weight=${currentWorkout.weightKg}, reps=${workingReps}, ` +
           `duration=${(duration / 1000).toFixed(1)}s`
       );
-      addWorkout({
+      savedWorkout = {
         mode: currentWorkout.mode,
         weightKg: currentWorkout.weightKg,
         reps: workingReps,
@@ -229,10 +232,12 @@ export function useWorkout(
         startTime: currentWorkout.startTime,
         warmupEndTime: currentWorkout.warmupEndTime,
         endTime,
-      });
+      };
+      addWorkout(savedWorkout);
     }
 
     resetWorkout();
+    return savedWorkout;
   }, [currentWorkout, workingReps, addWorkout, resetWorkout]);
 
   // Keep ref in sync so onWorkoutComplete can call completeWorkout
