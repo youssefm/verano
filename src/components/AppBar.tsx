@@ -25,7 +25,10 @@ export function AppBar({
 }: AppBarProps) {
   return (
     <header className="app-bar">
-      <span className="app-brand">🌿 Verano</span>
+      <span className="app-brand">
+        <img className="brand-flame" src="/icons/flame.svg" alt="" />
+        Verano
+      </span>
       {exerciseName && (
         <nav className="breadcrumb" aria-label="Breadcrumb">
           <span className="breadcrumb-divider">/</span>

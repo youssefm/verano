@@ -75,11 +75,21 @@ button:disabled {
 }
 
 .app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   white-space: nowrap;
   flex-shrink: 0;
   font-weight: 800;
   font-size: 1.15rem;
   letter-spacing: 0.01em;
+}
+
+/* Flame mark from the app icon, sized to the surrounding text. */
+.brand-flame {
+  height: 1.5em;
+  width: 1.5em;
+  vertical-align: -0.3em;
 }
 
 .breadcrumb {

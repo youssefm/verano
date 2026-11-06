@@ -220,7 +220,10 @@ export function ExercisePage({
         {progress.isDone ? (
           <section className="panel summary-panel">
             <div className="panel-title">Exercise complete</div>
-            <h2>{exercise.name} 🌿</h2>
+            <h2>
+              {exercise.name}{" "}
+              <img className="brand-flame" src="/icons/flame.svg" alt="" />
+            </h2>
             <div className="summary-stats">
               <div>
                 <b>{progress.completedSets.length}</b>
