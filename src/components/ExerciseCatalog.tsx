@@ -68,7 +68,7 @@ export function ExerciseCatalog({
             <h1>Exercises</h1>
             {exercises.length > 0 && (
               <p>
-                {doneCount} of {exercises.length} done this session
+                {doneCount} of {exercises.length} done today
               </p>
             )}
           </div>

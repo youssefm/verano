@@ -3,3 +3,4 @@
 export { useDevice } from "./useDevice";
 export { useWorkout } from "./useWorkout";
 export { useChart } from "./useChart";
+export { useToday } from "./useToday";

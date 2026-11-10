@@ -25,10 +25,15 @@ export function AppBar({
 }: AppBarProps) {
   return (
     <header className="app-bar">
-      <span className="app-brand">
+      <button
+        className="app-brand"
+        onClick={onShowCatalog}
+        disabled={!canNavigate}
+        title={canNavigate ? "Exercises" : "Stop the set to leave"}
+      >
         <img className="brand-flame" src="/icons/flame.svg" alt="" />
         Verano
-      </span>
+      </button>
       {exerciseName && (
         <nav className="breadcrumb" aria-label="Breadcrumb">
           <span className="breadcrumb-divider">/</span>

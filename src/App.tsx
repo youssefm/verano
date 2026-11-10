@@ -8,7 +8,7 @@ import {
   LiveWorkoutPanel,
   LoadChart,
 } from "./components";
-import { useDevice, useWorkout, useChart } from "./hooks";
+import { useDevice, useWorkout, useChart, useToday } from "./hooks";
 import { ProgramModeNames, EchoLevelNames } from "./lib/modes";
 import type { Workout, WorkoutConfig, ExerciseProgress } from "./lib/types";
 import {
@@ -25,7 +25,8 @@ import { exercisesAtom } from "./lib/atoms";
 import "./styles.css";
 
 export function App() {
-  // Per-exercise set progress (non-persistent, resets on refresh)
+  // Per-exercise set progress (non-persistent, resets on refresh and each new
+  // day, since the app may stay open for days)
   const [progressByExercise, setProgressByExercise] = useState<
     Record<string, ExerciseProgress>
   >({});
@@ -113,6 +114,15 @@ export function App() {
   } = useWorkout(handleAutoStop, handleWorkoutDone);
 
   const isSetRunning = currentWorkout !== null;
+
+  // Start each day fresh. A set running across midnight finishes first, so
+  // progress never resets underneath it.
+  const today = useToday();
+  const [progressDay, setProgressDay] = useState(today);
+  if (progressDay !== today && !isSetRunning) {
+    setProgressDay(today);
+    setProgressByExercise({});
+  }
 
   // Handle monitor samples - update chart and workout
   const onMonitorSample = useCallback(
