@@ -153,13 +153,11 @@ export function ExercisePage({
         <button className="button-primary button-stop" onClick={onStop}>
           <span className="stop-square" /> Stop
         </button>
-        <p className="controls-hint">
-          {!isConnected
-            ? "Trainer disconnected — stop to end the set"
-            : isOpenEndedSet(exercise, currentSet)
-              ? "Press Stop when you're done — the set counts"
-              : "Stopping early won't count the set"}
-        </p>
+        {!isConnected && (
+          <p className="controls-hint">
+            Trainer disconnected — stop to end the set
+          </p>
+        )}
       </>
     );
   } else if (isBurnoutNext) {
@@ -177,11 +175,9 @@ export function ExercisePage({
             Skip
           </button>
         </div>
-        <p className="controls-hint">
-          {isConnected
-            ? "One open-ended set — lift until you can't, then stop"
-            : "Connect the trainer to start"}
-        </p>
+        {!isConnected && (
+          <p className="controls-hint">Connect the trainer to start</p>
+        )}
       </>
     );
   } else {

@@ -131,6 +131,8 @@ export function LiveWorkoutPanel({
             stroke={color}
             strokeDasharray={ARC_CIRCUMFERENCE}
             strokeDashoffset={arcOffset}
+            // The round line cap would draw a dot at zero progress
+            strokeOpacity={progress > 0 ? 1 : 0}
           />
         </svg>
         <div className="meadow-arc-center">

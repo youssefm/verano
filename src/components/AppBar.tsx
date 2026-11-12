@@ -45,8 +45,10 @@ export function AppBar({
           >
             Exercises
           </button>
-          <span className="breadcrumb-divider">/</span>
-          <span className="breadcrumb-current">{exerciseName}</span>
+          <span className="breadcrumb-current-group">
+            <span className="breadcrumb-divider">/</span>
+            <span className="breadcrumb-current">{exerciseName}</span>
+          </span>
         </nav>
       )}
       <span className="app-bar-spacer" />
